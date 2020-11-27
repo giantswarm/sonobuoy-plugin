@@ -1,0 +1,15 @@
+sonobuoy-config:
+  driver: Job
+  plugin-name: giantswarm
+  result-format: raw
+spec:
+  image: quay.io/giantswarm/sonobuoy-plugin
+  name: plugin
+  env:
+    - name: KUBECONFIG
+    - name: CP_KUBECONFIG
+    - name: CLUSTER_ID
+  resources: { }
+  volumeMounts:
+    - mountPath: /tmp/results
+      name: results
