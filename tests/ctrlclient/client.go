@@ -16,21 +16,54 @@ import (
 	capiv1alpha3 "sigs.k8s.io/cluster-api/api/v1alpha3"
 	expcapiv1alpha3 "sigs.k8s.io/cluster-api/exp/api/v1alpha3"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/client/config"
 )
 
-func CreateCPCtrlClient(ctx context.Context) (client.Client, error) {
-	kubeConfig, exists := os.LookupEnv("CP_KUBECONFIG")
+const (
+	ControlPlaneKubeconfigContents  = "CP_KUBECONFIG"
+	TenantClusterKubeconfigContents = "TC_KUBECONFIG"
+)
+
+func CreateTCCtrlClient(ctx context.Context) (client.Client, error) {
+	kubeConfig, exists := os.LookupEnv(TenantClusterKubeconfigContents)
 	if !exists {
 		return nil, microerror.Mask(missingEnvironmentVariable)
 	}
 
 	restConfig, err := clientcmd.RESTConfigFromKubeConfig([]byte(kubeConfig))
-	fmt.Printf("This are the contents of the $CP_KUBECONFIG env var: %s", kubeConfig)
+	fmt.Printf("This are the contents of the $%s env var: %s", TenantClusterKubeconfigContents, kubeConfig)
 	if err != nil {
 		return nil, microerror.Mask(err)
 	}
 
+	scheme, err := getScheme()
+	if err != nil {
+		return nil, microerror.Mask(err)
+	}
+
+	return client.New(rest.CopyConfig(restConfig), client.Options{Scheme: scheme})
+}
+
+func CreateCPCtrlClient(ctx context.Context) (client.Client, error) {
+	kubeConfig, exists := os.LookupEnv(ControlPlaneKubeconfigContents)
+	if !exists {
+		return nil, microerror.Mask(missingEnvironmentVariable)
+	}
+
+	restConfig, err := clientcmd.RESTConfigFromKubeConfig([]byte(kubeConfig))
+	fmt.Printf("This are the contents of the $%s env var: %s", ControlPlaneKubeconfigContents, kubeConfig)
+	if err != nil {
+		return nil, microerror.Mask(err)
+	}
+
+	scheme, err := getScheme()
+	if err != nil {
+		return nil, microerror.Mask(err)
+	}
+
+	return client.New(restConfig, client.Options{Scheme: scheme})
+}
+
+func getScheme() (*runtime.Scheme, error) {
 	runtimeScheme := runtime.NewScheme()
 	appSchemeBuilder := runtime.SchemeBuilder{
 		apiextensions.AddToScheme,
@@ -40,14 +73,10 @@ func CreateCPCtrlClient(ctx context.Context) (client.Client, error) {
 		expcapzv1alpha3.AddToScheme,
 		corev1.AddToScheme,
 	}
-	err = appSchemeBuilder.AddToScheme(runtimeScheme)
+	err := appSchemeBuilder.AddToScheme(runtimeScheme)
 	if err != nil {
 		return nil, microerror.Mask(err)
 	}
 
-	return client.New(rest.CopyConfig(restConfig), client.Options{Scheme: runtimeScheme})
-}
-
-func CreateTCCtrlClient(ctx context.Context) (client.Client, error) {
-	return client.New(config.GetConfigOrDie(), client.Options{})
+	return runtimeScheme, nil
 }
