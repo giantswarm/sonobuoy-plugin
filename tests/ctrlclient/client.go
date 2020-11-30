@@ -19,12 +19,12 @@ import (
 )
 
 func CreateCPCtrlClient(ctx context.Context) (client.Client, error) {
-	kubeConfigPath, exists := os.LookupEnv("CP_KUBECONFIG")
+	kubeConfig, exists := os.LookupEnv("CP_KUBECONFIG")
 	if !exists {
 		return nil, microerror.Mask(missingEnvironmentVariable)
 	}
 
-	restConfig, err := clientcmd.BuildConfigFromFlags("", kubeConfigPath)
+	restConfig, err := clientcmd.RESTConfigFromKubeConfig([]byte(kubeConfig))
 	if err != nil {
 		return nil, microerror.Mask(err)
 	}
