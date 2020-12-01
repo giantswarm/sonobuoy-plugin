@@ -10,4 +10,4 @@ RUN go mod download
 COPY . .
 RUN go build ./...
 
-ENTRYPOINT ["go", "test", "-v", "./..."]
+ENTRYPOINT ["/app/run_go_test.sh"]
