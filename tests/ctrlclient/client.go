@@ -2,7 +2,6 @@ package ctrlclient
 
 import (
 	"context"
-	"fmt"
 	"os"
 
 	"github.com/giantswarm/microerror"
@@ -30,7 +29,6 @@ func CreateTCCtrlClient(ctx context.Context) (client.Client, error) {
 	}
 
 	restConfig, err := clientcmd.RESTConfigFromKubeConfig([]byte(kubeConfig))
-	fmt.Printf("This are the contents of the $%s env var: %s", TenantClusterKubeconfigContents, kubeConfig)
 	if err != nil {
 		return nil, microerror.Mask(err)
 	}
@@ -50,7 +48,6 @@ func CreateCPCtrlClient(ctx context.Context) (client.Client, error) {
 	}
 
 	restConfig, err := clientcmd.RESTConfigFromKubeConfig([]byte(kubeConfig))
-	fmt.Printf("This are the contents of the $%s env var: %s", ControlPlaneKubeconfigContents, kubeConfig)
 	if err != nil {
 		return nil, microerror.Mask(err)
 	}
