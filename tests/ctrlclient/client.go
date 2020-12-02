@@ -25,7 +25,7 @@ const (
 func GetCPKubeConfig(ctx context.Context) ([]byte, error) {
 	kubeConfig, exists := os.LookupEnv(ControlPlaneKubeconfigContents)
 	if !exists {
-		return nil, microerror.Mask(missingEnvironmentVariable)
+		return nil, microerror.Maskf(missingEnvironmentVariable, "the %s env var is required", ControlPlaneKubeconfigContents)
 	}
 
 	return []byte(kubeConfig), nil
@@ -34,7 +34,7 @@ func GetCPKubeConfig(ctx context.Context) ([]byte, error) {
 func GetTCKubeConfig(ctx context.Context) ([]byte, error) {
 	kubeConfig, exists := os.LookupEnv(TenantClusterKubeconfigContents)
 	if !exists {
-		return nil, microerror.Mask(missingEnvironmentVariable)
+		return nil, microerror.Maskf(missingEnvironmentVariable, "the %s env var is required", TenantClusterKubeconfigContents)
 	}
 
 	return []byte(kubeConfig), nil
