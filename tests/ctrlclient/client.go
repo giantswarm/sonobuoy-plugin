@@ -22,13 +22,31 @@ const (
 	TenantClusterKubeconfigContents = "TC_KUBECONFIG"
 )
 
-func CreateTCCtrlClient(ctx context.Context) (client.Client, error) {
+func GetCPKubeConfig(ctx context.Context) ([]byte, error) {
+	kubeConfig, exists := os.LookupEnv(ControlPlaneKubeconfigContents)
+	if !exists {
+		return nil, microerror.Mask(missingEnvironmentVariable)
+	}
+
+	return []byte(kubeConfig), nil
+}
+
+func GetTCKubeConfig(ctx context.Context) ([]byte, error) {
 	kubeConfig, exists := os.LookupEnv(TenantClusterKubeconfigContents)
 	if !exists {
 		return nil, microerror.Mask(missingEnvironmentVariable)
 	}
 
-	restConfig, err := clientcmd.RESTConfigFromKubeConfig([]byte(kubeConfig))
+	return []byte(kubeConfig), nil
+}
+
+func CreateTCCtrlClient(ctx context.Context) (client.Client, error) {
+	kubeConfig, err := GetTCKubeConfig(ctx)
+	if err != nil {
+		return nil, microerror.Mask(err)
+	}
+
+	restConfig, err := clientcmd.RESTConfigFromKubeConfig(kubeConfig)
 	if err != nil {
 		return nil, microerror.Mask(err)
 	}
@@ -42,9 +60,9 @@ func CreateTCCtrlClient(ctx context.Context) (client.Client, error) {
 }
 
 func CreateCPCtrlClient(ctx context.Context) (client.Client, error) {
-	kubeConfig, exists := os.LookupEnv(ControlPlaneKubeconfigContents)
-	if !exists {
-		return nil, microerror.Mask(missingEnvironmentVariable)
+	kubeConfig, err := GetCPKubeConfig(ctx)
+	if err != nil {
+		return nil, microerror.Mask(err)
 	}
 
 	restConfig, err := clientcmd.RESTConfigFromKubeConfig([]byte(kubeConfig))

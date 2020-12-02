@@ -3,9 +3,11 @@ module github.com/giantswarm/azure-sonobuoy/v5
 go 1.15
 
 require (
+	github.com/Azure/go-autorest/autorest/to v0.4.0
+	github.com/giantswarm/apptest v0.7.1
 	github.com/giantswarm/backoff v0.2.0
 	github.com/giantswarm/microerror v0.2.1
-	github.com/giantswarm/micrologger v0.3.1
+	github.com/giantswarm/micrologger v0.3.4
 	k8s.io/api v0.18.9
 	k8s.io/apiextensions-apiserver v0.18.9
 	k8s.io/apimachinery v0.18.9
