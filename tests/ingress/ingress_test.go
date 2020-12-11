@@ -24,8 +24,8 @@ import (
 )
 
 const (
-	helloWorldAppName = "loadtest-app"
-	IngressValues     = `baseDomain: %s
+	helloWorldAppName  = "loadtest-app"
+	NginxIngressValues = `baseDomain: %s
 `
 	HelloWorldValues = `replicaCount: 1
 ingress:
@@ -110,7 +110,7 @@ func Test_Ingress(t *testing.T) {
 			KubeConfig:         string(tcKubeConfig),
 			Name:               "nginx-ingress-controller-app",
 			Namespace:          "kube-system",
-			ValuesYAML:         fmt.Sprintf(IngressValues, baseDomain),
+			ValuesYAML:         fmt.Sprintf(NginxIngressValues, baseDomain),
 			Version:            "1.11.0",
 			WaitForDeploy:      true,
 		},
@@ -172,12 +172,12 @@ func Test_Ingress(t *testing.T) {
 func createPodThatSendsHttpRequestToEndpoint(ctx context.Context, ctrlClient client.Client, namespace, httpEndpoint string) (*corev1.Pod, error) {
 	pod := &corev1.Pod{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      "e2e",
+			Name:      "e2e-ingress",
 			Namespace: namespace,
 		},
 		Spec: corev1.PodSpec{
 			RestartPolicy: corev1.RestartPolicyNever,
-			Containers:    []corev1.Container{{Name: "connectivity", Image: "busybox", Command: []string{"wget"}, Args: []string{httpEndpoint, "--timeout", "5", "-O", "-"}}},
+			Containers:    []corev1.Container{{Name: "test", Image: "busybox", Command: []string{"wget"}, Args: []string{httpEndpoint, "--timeout", "5", "-O", "-"}}},
 		},
 	}
 	err := ctrlClient.Create(ctx, pod)
