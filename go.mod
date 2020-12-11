@@ -1,4 +1,4 @@
-module github.com/giantswarm/azure-sonobuoy/v5
+module github.com/giantswarm/sonobuoy-plugin/v5
 
 go 1.15
 

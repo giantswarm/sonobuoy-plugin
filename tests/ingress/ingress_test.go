@@ -13,21 +13,17 @@ import (
 	"github.com/giantswarm/micrologger"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime"
-	capzv1alpha3 "sigs.k8s.io/cluster-api-provider-azure/api/v1alpha3"
-	expcapzv1alpha3 "sigs.k8s.io/cluster-api-provider-azure/exp/api/v1alpha3"
 	capiv1alpha3 "sigs.k8s.io/cluster-api/api/v1alpha3"
-	expcapiv1alpha3 "sigs.k8s.io/cluster-api/exp/api/v1alpha3"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	"github.com/giantswarm/azure-sonobuoy/v5/tests/ctrlclient"
+	"github.com/giantswarm/sonobuoy-plugin/v5/tests/ctrlclient"
 )
 
 const (
 	helloWorldAppName  = "loadtest-app"
-	NginxIngressValues = `baseDomain: %s
-`
-	HelloWorldValues = `replicaCount: 1
+	NginxIngressValues = "baseDomain: %s"
+	HelloWorldValues   = `
+replicaCount: 1
 ingress:
   enabled: true
   annotations:
@@ -80,22 +76,10 @@ func Test_Ingress(t *testing.T) {
 
 	var appTest apptest.Interface
 	{
-		runtimeScheme := runtime.NewScheme()
-		appSchemeBuilder := runtime.SchemeBuilder{
-			capiv1alpha3.AddToScheme,
-			capzv1alpha3.AddToScheme,
-			expcapiv1alpha3.AddToScheme,
-			expcapzv1alpha3.AddToScheme,
-			corev1.AddToScheme,
-		}
-		err := appSchemeBuilder.AddToScheme(runtimeScheme)
-		if err != nil {
-			t.Fatal(err)
-		}
 		appTest, err = apptest.New(apptest.Config{
 			KubeConfig: string(cpKubeConfig),
 			Logger:     logger,
-			Scheme:     runtimeScheme,
+			Scheme:     ctrlclient.Scheme,
 		})
 		if err != nil {
 			t.Fatal(err)
