@@ -9,7 +9,6 @@ spec:
     - name: TC_KUBECONFIG
     - name: CP_KUBECONFIG
     - name: CLUSTER_ID
-  resources: { }
   volumeMounts:
     - mountPath: /tmp/results
       name: results
