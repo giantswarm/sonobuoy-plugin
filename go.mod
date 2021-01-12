@@ -3,6 +3,7 @@ module github.com/giantswarm/sonobuoy-plugin/v5
 go 1.15
 
 require (
+	github.com/Azure/go-autorest/autorest/to v0.4.0
 	github.com/giantswarm/apptest v0.8.0
 	github.com/giantswarm/backoff v0.2.0
 	github.com/giantswarm/microerror v0.3.0
