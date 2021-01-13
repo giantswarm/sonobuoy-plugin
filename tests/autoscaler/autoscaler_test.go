@@ -2,7 +2,6 @@ package ingress
 
 import (
 	"context"
-	"fmt"
 	"github.com/Azure/go-autorest/autorest/to"
 	"github.com/giantswarm/backoff"
 	"github.com/giantswarm/microerror"
@@ -39,7 +38,7 @@ func Test_Autoscaler(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	logger.LogCtx(ctx, "level", "debug", fmt.Sprintf("Creating %s deployment", helloWorldDeploymentName))
+	logger.Debugf(ctx, "Creating %s deployment", helloWorldDeploymentName)
 
 	deployment, err := createDeployment(ctx, tcCtrlClient, 1)
 	if err != nil {
@@ -52,17 +51,17 @@ func Test_Autoscaler(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	logger.LogCtx(ctx, "level", "debug", fmt.Sprintf("Found %d worker nodes", workersCount))
+	logger.Debugf(ctx, "Found %d worker nodes", workersCount)
 
 	// Scale helloworld deployment to len(workers) + 1 replicas to trigger a scale up.
 	expectedWorkersCount := int32(workersCount + 1)
-	logger.LogCtx(ctx, "level", "debug", fmt.Sprintf("Scaling deployment %s/%s to %d replicas", helloWorldNamespace, helloWorldDeploymentName, expectedWorkersCount))
+	logger.Debugf(ctx, "Scaling deployment %s/%s to %d replicas", helloWorldNamespace, helloWorldDeploymentName, expectedWorkersCount)
 	err = scaleDeployment(ctx, tcCtrlClient, expectedWorkersCount)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	logger.LogCtx(ctx, "level", "debug", fmt.Sprintf("Waiting for %d worker nodes to exist", expectedWorkersCount))
+	logger.Debugf(ctx, "Waiting for %d worker nodes to exist", expectedWorkersCount)
 
 	// Wait for nodes to increase by one.
 	o := func() error {
@@ -86,7 +85,7 @@ func Test_Autoscaler(t *testing.T) {
 
 	// Scale down deployment, wait for one node to get deleted.
 	expectedWorkersCount = expectedWorkersCount - 1
-	logger.LogCtx(ctx, "level", "debug", fmt.Sprintf("Scaling deployment %s/%s to %d replicas", helloWorldNamespace, helloWorldDeploymentName, expectedWorkersCount))
+	logger.Debugf(ctx, "Scaling deployment %s/%s to %d replicas", helloWorldNamespace, helloWorldDeploymentName, expectedWorkersCount)
 	err = scaleDeployment(ctx, tcCtrlClient, expectedWorkersCount)
 	if err != nil {
 		t.Fatalf("timeout waiting for cluster to scale down: %v", err)
