@@ -131,7 +131,6 @@ func scaleDeployment(ctx context.Context, ctrlClient client.Client, expectedWork
 }
 
 func createDeployment(ctx context.Context, ctrlClient client.Client, replicas int32) (*appsv1.Deployment, error) {
-	// Check if deployment exists already.
 	deployment := &appsv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      helloWorldDeploymentName,
