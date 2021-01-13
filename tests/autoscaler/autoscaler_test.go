@@ -6,7 +6,6 @@ import (
 	"github.com/giantswarm/backoff"
 	"github.com/giantswarm/microerror"
 	appsv1 "k8s.io/api/apps/v1"
-	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"testing"
 	"time"
@@ -133,19 +132,6 @@ func scaleDeployment(ctx context.Context, ctrlClient client.Client, expectedWork
 
 func createDeployment(ctx context.Context, ctrlClient client.Client, replicas int32) (*appsv1.Deployment, error) {
 	// Check if deployment exists already.
-	existing := &appsv1.Deployment{}
-	err := ctrlClient.Get(ctx, client.ObjectKey{Name: helloWorldDeploymentName, Namespace: helloWorldNamespace}, existing)
-	if err != nil && !errors.IsNotFound(err) {
-		return nil, microerror.Mask(err)
-	}
-
-	if existing.Name != "" {
-		err = ctrlClient.Delete(ctx, existing)
-		if err != nil {
-			return nil, microerror.Mask(err)
-		}
-	}
-
 	deployment := &appsv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      helloWorldDeploymentName,
@@ -196,7 +182,7 @@ func createDeployment(ctx context.Context, ctrlClient client.Client, replicas in
 			},
 		},
 	}
-	err = ctrlClient.Create(ctx, deployment)
+	err := ctrlClient.Create(ctx, deployment)
 	if err != nil {
 		return nil, err
 	}
