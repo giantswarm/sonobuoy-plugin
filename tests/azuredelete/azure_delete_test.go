@@ -82,7 +82,7 @@ func Test_AzureDelete(t *testing.T) {
 	// Check the resource group is missing.
 	// Using a backoff here to overcome Azure API eventual integrity.
 	o = func() error {
-		exists, err := azureClient.ResourceGroupExists(clusterID)
+		exists, err := azureClient.ResourceGroupExists(ctx, clusterID)
 		if err != nil {
 			return microerror.Maskf(executionFailedError, "Error checking if the resource group exists: %v", err)
 		}
