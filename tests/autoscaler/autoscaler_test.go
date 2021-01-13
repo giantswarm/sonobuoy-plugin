@@ -95,6 +95,8 @@ func Test_Autoscaler(t *testing.T) {
 	if err != nil {
 		cleanupAndFatal(ctx, deployment, tcCtrlClient, t, "timeout waiting for cluster to scale down: %v", err)
 	}
+
+	tcCtrlClient.Delete(ctx, deployment)
 }
 
 func cleanupAndFatal(ctx context.Context, deployment *appsv1.Deployment, ctrlClient client.Client, t *testing.T, msg string, args ...interface{}) {
