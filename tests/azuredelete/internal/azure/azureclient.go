@@ -51,8 +51,6 @@ func (c *Client) ResourceGroupExists(ctx context.Context, name string) (bool, er
 
 func newResourceGroupClient(clientID, clientSecret, tenantID, subscriptionID string) (*resources.GroupsClient, error) {
 	credentials := auth.NewClientCredentialsConfig(clientID, clientSecret, tenantID)
-	credentials.AuxTenants = append(credentials.AuxTenants, tenantID)
-
 	authorizer, err := credentials.Authorizer()
 	if err != nil {
 		return nil, microerror.Mask(err)

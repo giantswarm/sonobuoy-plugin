@@ -2,7 +2,6 @@ package ingress
 
 import (
 	"context"
-	"fmt"
 	"github.com/giantswarm/backoff"
 	"github.com/giantswarm/microerror"
 	"github.com/giantswarm/micrologger"
@@ -11,7 +10,6 @@ import (
 	"k8s.io/apimachinery/pkg/api/errors"
 	"os"
 	capzV1alpha3 "sigs.k8s.io/cluster-api-provider-azure/api/v1alpha3"
-	apiv1alpha2 "sigs.k8s.io/cluster-api/api/v1alpha2"
 	capiv1alpha3 "sigs.k8s.io/cluster-api/api/v1alpha3"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"testing"
@@ -52,58 +50,78 @@ func Test_AzureDelete(t *testing.T) {
 		t.Fatal("missing CLUSTER_ID environment variable")
 	}
 
-	// Delete cluster.
-	err = deleteCluster(ctx, cpCtrlClient, logger, clusterID)
+	logger.Debugf(ctx, "Checking if resource group exists.")
+
+	// Check the resourge group exists.
+	exists, err = azureClient.ResourceGroupExists(ctx, clusterID)
 	if err != nil {
-		t.Fatalf("error deleting cluster: %v", err)
+		t.Fatalf("Unable to check if the cluster's resource group exists: %v", err)
+	}
+	if !exists {
+		t.Fatal("Expected Resource Group to exist but it doesn't.")
+	}
+
+	// Delete cluster.
+	{
+		logger.Debugf(ctx, "Deleting cluster %s", clusterID)
+		err = deleteCluster(ctx, cpCtrlClient, logger, clusterID)
+		if err != nil {
+			t.Fatalf("error deleting cluster: %v", err)
+		}
+		logger.Debugf(ctx, "Cluster %s deletion successful", clusterID)
 	}
 
 	// Wait for Cluster CR to be deleted.
-	o := func() error {
-		clusters := &capiv1alpha3.ClusterList{}
-		err := cpCtrlClient.List(ctx, clusters, client.MatchingLabels{capiv1alpha3.ClusterLabelName: clusterID})
+	{
+		logger.Debugf(ctx, "Waiting for cluster CR for cluster %s to be deleted", clusterID)
+		o := func() error {
+			clusters := &capiv1alpha3.ClusterList{}
+			err := cpCtrlClient.List(ctx, clusters, client.MatchingLabels{capiv1alpha3.ClusterLabelName: clusterID})
+			if err != nil {
+				return microerror.Mask(err)
+			}
+
+			if len(clusters.Items) > 0 {
+				return microerror.Maskf(customResourceStillExistsError, "Cluster CR for cluster %s still exists (%d found)", clusterID, len(clusters.Items))
+			}
+
+			return nil
+		}
+		b := backoff.NewConstant(backoff.LongMaxWait, backoff.LongMaxInterval)
+		n := backoff.NewNotifier(logger, ctx)
+		err = backoff.RetryNotify(o, b, n)
 		if err != nil {
-			return microerror.Mask(err)
+			t.Fatalf("Failed waiting for Cluster CR to be deleted: %v", err)
 		}
-
-		if len(clusters.Items) > 0 {
-			return microerror.Maskf(customResourceStillExistsError, "Cluster CR for cluster %s still exists (%d found)", clusterID, len(clusters.Items))
-		}
-
-		return nil
-	}
-	b := backoff.NewConstant(backoff.LongMaxWait, backoff.LongMaxInterval)
-	n := backoff.NewNotifier(logger, ctx)
-	err = backoff.RetryNotify(o, b, n)
-	if err != nil {
-		t.Fatalf("Failed waiting for Cluster CR to be deleted: %v", err)
 	}
 
 	// Check the resource group is missing.
 	// Using a backoff here to overcome Azure API eventual integrity.
-	o = func() error {
-		exists, err := azureClient.ResourceGroupExists(ctx, clusterID)
+	{
+		logger.Debugf(ctx, "Waiting for resource group %s to be deleted", clusterID)
+
+		o := func() error {
+			exists, err := azureClient.ResourceGroupExists(ctx, clusterID)
+			if err != nil {
+				return microerror.Maskf(executionFailedError, "Error checking if the resource group exists: %v", err)
+			}
+
+			if exists {
+				return microerror.Maskf(executionFailedError, "Resource group still exists: %v", err)
+			}
+
+			return nil
+		}
+		b := backoff.NewConstant(backoff.MediumMaxWait, backoff.ShortMaxInterval)
+		n := backoff.NewNotifier(logger, ctx)
+		err = backoff.RetryNotify(o, b, n)
 		if err != nil {
-			return microerror.Maskf(executionFailedError, "Error checking if the resource group exists: %v", err)
+			t.Fatalf("Failed waiting for Resource Group to be deleted: %v", err)
 		}
-
-		if exists {
-			return microerror.Maskf(executionFailedError, "Resource group still exists: %v", err)
-		}
-
-		return nil
-	}
-	b = backoff.NewConstant(backoff.MediumMaxWait, backoff.ShortMaxInterval)
-	n = backoff.NewNotifier(logger, ctx)
-	err = backoff.RetryNotify(o, b, n)
-	if err != nil {
-		t.Fatalf("Failed waiting for Resource Group to be deleted: %v", err)
 	}
 }
 
 func deleteCluster(ctx context.Context, ctrlClient client.Client, logger micrologger.Logger, clusterID string) error {
-	logger.LogCtx(ctx, "level", "debug", "message", fmt.Sprintf("Deleting cluster %s", clusterID))
-
 	labelSelector := client.MatchingLabels{}
 	labelSelector[capiv1alpha3.ClusterLabelName] = clusterID
 
@@ -117,7 +135,7 @@ func deleteCluster(ctx context.Context, ctrlClient client.Client, logger microlo
 
 	// delete provider-independent cluster CRs
 	{
-		err = ctrlClient.DeleteAllOf(ctx, &apiv1alpha2.Cluster{}, labelSelector, namespace)
+		err = ctrlClient.DeleteAllOf(ctx, &capiv1alpha3.Cluster{}, labelSelector, namespace)
 		if errors.IsNotFound(err) {
 			// fall through
 		} else if err != nil {
@@ -131,7 +149,7 @@ func deleteCluster(ctx context.Context, ctrlClient client.Client, logger microlo
 	{
 		err = ctrlClient.DeleteAllOf(ctx, &capzV1alpha3.AzureCluster{}, labelSelector, inNamespace)
 		if errors.IsNotFound(err) {
-			logger.LogCtx(ctx, "level", "debug", "message", fmt.Sprintf("AzureCluster CR not found for cluster ID %q", clusterID))
+			logger.Debugf(ctx, "AzureCluster CR not found for cluster ID %q", clusterID)
 		} else if err != nil {
 			return microerror.Mask(err)
 		}
@@ -141,9 +159,9 @@ func deleteCluster(ctx context.Context, ctrlClient client.Client, logger microlo
 }
 
 func getClusterNamespace(ctx context.Context, ctrlClient client.Client, labelSelector client.MatchingLabels) (string, error) {
-	var cr apiv1alpha2.Cluster
+	var cr capiv1alpha3.Cluster
 	{
-		crs := &apiv1alpha2.ClusterList{}
+		crs := &capiv1alpha3.ClusterList{}
 
 		err := ctrlClient.List(ctx, crs, labelSelector)
 		if err != nil {
