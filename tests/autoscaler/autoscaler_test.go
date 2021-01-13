@@ -44,6 +44,7 @@ func Test_Autoscaler(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	defer tcCtrlClient.Delete(ctx, deployment)
 
 	// Get number of worker nodes.
 	workersCount, err := getWorkersCount(ctx, tcCtrlClient)
@@ -95,8 +96,6 @@ func Test_Autoscaler(t *testing.T) {
 	if err != nil {
 		t.Fatalf("timeout waiting for cluster to scale down: %v", err)
 	}
-
-	_ = tcCtrlClient.Delete(ctx, deployment)
 }
 
 func getWorkersCount(ctx context.Context, ctrlClient client.Client) (int, error) {
