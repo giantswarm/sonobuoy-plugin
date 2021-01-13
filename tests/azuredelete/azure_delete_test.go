@@ -6,6 +6,7 @@ import (
 	"github.com/giantswarm/backoff"
 	"github.com/giantswarm/microerror"
 	"github.com/giantswarm/micrologger"
+	"github.com/giantswarm/sonobuoy-plugin/v5/tests/azuredelete/internal/azure"
 	"github.com/giantswarm/sonobuoy-plugin/v5/tests/ctrlclient"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"os"
@@ -37,6 +38,11 @@ func Test_AzureDelete(t *testing.T) {
 	}
 
 	cpCtrlClient, err := ctrlclient.CreateCPCtrlClient(ctx)
+	if err != nil {
+		t.Fatalf("error creating CP k8s client: %v", err)
+	}
+
+	azureClient, err := azure.NewClient()
 	if err != nil {
 		t.Fatalf("error creating CP k8s client: %v", err)
 	}
@@ -74,7 +80,25 @@ func Test_AzureDelete(t *testing.T) {
 	}
 
 	// Check the resource group is missing.
+	// Using a backoff here to overcome Azure API eventual integrity.
+	o = func() error {
+		exists, err := azureClient.ResourceGroupExists(clusterID)
+		if err != nil {
+			return microerror.Maskf(executionFailedError, "Error checking if the resource group exists: %v", err)
+		}
 
+		if exists {
+			return microerror.Maskf(executionFailedError, "Resource group still exists: %v", err)
+		}
+
+		return nil
+	}
+	b = backoff.NewConstant(backoff.MediumMaxWait, backoff.ShortMaxInterval)
+	n = backoff.NewNotifier(logger, ctx)
+	err = backoff.RetryNotify(o, b, n)
+	if err != nil {
+		t.Fatalf("Failed waiting for Resource Group to be deleted: %v", err)
+	}
 }
 
 func deleteCluster(ctx context.Context, ctrlClient client.Client, logger micrologger.Logger, clusterID string) error {
