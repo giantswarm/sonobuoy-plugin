@@ -3,11 +3,14 @@ package ingress
 import (
 	"context"
 	"fmt"
+	"github.com/giantswarm/backoff"
 	"github.com/giantswarm/microerror"
 	"github.com/giantswarm/micrologger"
 	"github.com/giantswarm/sonobuoy-plugin/v5/tests/ctrlclient"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"os"
+	capzV1alpha3 "sigs.k8s.io/cluster-api-provider-azure/api/v1alpha3"
+	apiv1alpha2 "sigs.k8s.io/cluster-api/api/v1alpha2"
 	capiv1alpha3 "sigs.k8s.io/cluster-api/api/v1alpha3"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"testing"
@@ -21,6 +24,16 @@ func Test_AzureDelete(t *testing.T) {
 	logger, err := micrologger.New(micrologger.Config{})
 	if err != nil {
 		t.Fatal(err)
+	}
+
+	provider, exists := os.LookupEnv("PROVIDER")
+	if !exists {
+		t.Fatal("missing PROVIDER environment variable")
+	}
+
+	if provider != "azure" {
+		logger.Debugf(ctx, "Only Azure provider is supported by this test, skipping")
+		return
 	}
 
 	cpCtrlClient, err := ctrlclient.CreateCPCtrlClient(ctx)
@@ -39,18 +52,29 @@ func Test_AzureDelete(t *testing.T) {
 		t.Fatalf("error deleting cluster: %v", err)
 	}
 
-	// Wait for ClusterCR to be deleted.
+	// Wait for Cluster CR to be deleted.
+	o := func() error {
+		clusters := &capiv1alpha3.ClusterList{}
+		err := cpCtrlClient.List(ctx, clusters, client.MatchingLabels{capiv1alpha3.ClusterLabelName: clusterID})
+		if err != nil {
+			return microerror.Mask(err)
+		}
+
+		if len(clusters.Items) > 0 {
+			return microerror.Maskf(customResourceStillExistsError, "Cluster CR for cluster %s still exists (%d found)", clusterID, len(clusters.Items))
+		}
+
+		return nil
+	}
+	b := backoff.NewConstant(backoff.LongMaxWait, backoff.LongMaxInterval)
+	n := backoff.NewNotifier(logger, ctx)
+	err = backoff.RetryNotify(o, b, n)
+	if err != nil {
+		t.Fatalf("Failed waiting for Cluster CR to be deleted: %v", err)
+	}
+
 	// Check the resource group is missing.
 
-	//
-
-	//
-
-	//
-	//cpKubeConfig, err := ctrlclient.GetCPKubeConfig(ctx)
-	//if err != nil {
-	//	t.Fatal(err)
-	//}
 }
 
 func deleteCluster(ctx context.Context, ctrlClient client.Client, logger micrologger.Logger, clusterID string) error {
