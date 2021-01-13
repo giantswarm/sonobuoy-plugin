@@ -3,6 +3,8 @@ module github.com/giantswarm/sonobuoy-plugin/v5
 go 1.15
 
 require (
+	github.com/Azure/azure-sdk-for-go v46.4.0+incompatible
+	github.com/Azure/go-autorest/autorest/azure/auth v0.5.2
 	github.com/giantswarm/apptest v0.8.0
 	github.com/giantswarm/backoff v0.2.0
 	github.com/giantswarm/microerror v0.3.0
