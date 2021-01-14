@@ -13,4 +13,4 @@ saveResults() {
 trap saveResults EXIT
 
 mkdir "${results_dir}" || true
-go test -v ./... 2>&1 | tee -a "${results_dir}/out"
+go test -v -timeout 99999s ./... 2>&1 | tee -a "${results_dir}/out"
