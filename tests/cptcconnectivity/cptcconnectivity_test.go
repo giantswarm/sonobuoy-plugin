@@ -14,12 +14,11 @@ import (
 	capiv1alpha3 "sigs.k8s.io/cluster-api/api/v1alpha3"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	"github.com/giantswarm/azure-sonobuoy/v5/tests/ctrlclient"
+	"github.com/giantswarm/sonobuoy-plugin/v5/tests/ctrlclient"
 )
 
 const (
-	podName      = "e2e-connectivity"
-	podNamespace = "default"
+	podName = "e2e-connectivity"
 )
 
 func Test_CPTCConnectivity(t *testing.T) {
@@ -55,11 +54,11 @@ func Test_CPTCConnectivity(t *testing.T) {
 	pod := &corev1.Pod{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      podName,
-			Namespace: podNamespace,
+			Namespace: clusterID,
 		},
 		Spec: corev1.PodSpec{
 			RestartPolicy: corev1.RestartPolicyNever,
-			Containers:    []corev1.Container{{Name: "connectivity", Image: "busybox", Command: []string{"nc"}, Args: []string{"-z", k8sAPIEndpointHost, k8sAPIEndpointPort}}},
+			Containers:    []corev1.Container{{Name: "test", Image: "busybox", Command: []string{"nc"}, Args: []string{"-z", k8sAPIEndpointHost, k8sAPIEndpointPort}}},
 		},
 	}
 	err = cpCtrlClient.Create(ctx, pod)

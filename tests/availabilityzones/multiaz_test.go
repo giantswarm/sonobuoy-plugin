@@ -14,7 +14,7 @@ import (
 	"sigs.k8s.io/cluster-api/exp/api/v1alpha3"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	"github.com/giantswarm/azure-sonobuoy/v5/tests/ctrlclient"
+	"github.com/giantswarm/sonobuoy-plugin/v5/tests/ctrlclient"
 )
 
 const (

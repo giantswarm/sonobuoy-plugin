@@ -6,7 +6,7 @@ spec:
   image: quay.io/giantswarm/sonobuoy-plugin
   name: plugin
   env:
-    - name: KUBECONFIG
+    - name: TC_KUBECONFIG
     - name: CP_KUBECONFIG
     - name: CLUSTER_ID
     - name: AZURE_CLIENT_ID
