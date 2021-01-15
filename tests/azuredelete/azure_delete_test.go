@@ -5,7 +5,8 @@ import (
 	"github.com/giantswarm/backoff"
 	"github.com/giantswarm/microerror"
 	"github.com/giantswarm/micrologger"
-	"github.com/giantswarm/sonobuoy-plugin/v5/tests/azuredelete/internal/azure"
+	azureclient "github.com/giantswarm/sonobuoy-plugin/v5/azure/client"
+	"github.com/giantswarm/sonobuoy-plugin/v5/azure/credentials"
 	"github.com/giantswarm/sonobuoy-plugin/v5/tests/ctrlclient"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"os"
@@ -40,14 +41,19 @@ func Test_AzureDelete(t *testing.T) {
 		t.Fatalf("error creating CP k8s client: %v", err)
 	}
 
-	azureClient, err := azure.NewClient()
-	if err != nil {
-		t.Fatalf("error creating CP k8s client: %v", err)
-	}
-
 	clusterID, exists := os.LookupEnv("CLUSTER_ID")
 	if !exists {
 		t.Fatal("missing CLUSTER_ID environment variable")
+	}
+
+	servicePrincipal, err := credentials.FromSecret(ctx, cpCtrlClient, clusterID)
+	if err != nil {
+		t.Fatalf("can't get service principal credentials: %v", err)
+	}
+
+	azureClient, err := azureclient.NewClient(azureclient.Config{ServicePrincipal: servicePrincipal})
+	if err != nil {
+		t.Fatalf("error creating azure client: %v", err)
 	}
 
 	logger.Debugf(ctx, "Checking if resource group exists.")

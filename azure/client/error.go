@@ -1,12 +1,12 @@
-package azure
+package client
 
 import (
 	"github.com/giantswarm/microerror"
 	"strings"
 )
 
-var missingEnvVarError = &microerror.Error{
-	Kind: "missingEnvVarError",
+var invalidConfigError = &microerror.Error{
+	Kind: "invalidConfigError",
 }
 
 func IsNotFound(err error) bool {
