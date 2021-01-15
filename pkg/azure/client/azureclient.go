@@ -2,10 +2,12 @@ package client
 
 import (
 	"context"
+
 	"github.com/Azure/azure-sdk-for-go/services/resources/mgmt/2019-05-01/resources"
 	"github.com/Azure/go-autorest/autorest/azure/auth"
 	"github.com/giantswarm/microerror"
-	"github.com/giantswarm/sonobuoy-plugin/v5/azure/credentials"
+
+	"github.com/giantswarm/sonobuoy-plugin/v5/pkg/azure/credentials"
 )
 
 type Config struct {

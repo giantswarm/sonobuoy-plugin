@@ -2,18 +2,20 @@ package ingress
 
 import (
 	"context"
+	"os"
+	"testing"
+
 	"github.com/giantswarm/backoff"
 	"github.com/giantswarm/microerror"
 	"github.com/giantswarm/micrologger"
-	azureclient "github.com/giantswarm/sonobuoy-plugin/v5/azure/client"
-	"github.com/giantswarm/sonobuoy-plugin/v5/azure/credentials"
-	"github.com/giantswarm/sonobuoy-plugin/v5/tests/ctrlclient"
 	"k8s.io/apimachinery/pkg/api/errors"
-	"os"
 	capzV1alpha3 "sigs.k8s.io/cluster-api-provider-azure/api/v1alpha3"
 	capiv1alpha3 "sigs.k8s.io/cluster-api/api/v1alpha3"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	"testing"
+
+	azureclient "github.com/giantswarm/sonobuoy-plugin/v5/pkg/azure/client"
+	"github.com/giantswarm/sonobuoy-plugin/v5/pkg/azure/credentials"
+	"github.com/giantswarm/sonobuoy-plugin/v5/pkg/ctrlclient"
 )
 
 func Test_AzureDelete(t *testing.T) {
