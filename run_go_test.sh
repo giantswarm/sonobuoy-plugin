@@ -13,4 +13,9 @@ saveResults() {
 trap saveResults EXIT
 
 mkdir "${results_dir}" || true
-go test -v -timeout 99999s ./... 2>&1 | tee -a "${results_dir}/out"
+
+# Run all tests.
+go test -v -timeout 99999s ./tests/... 2>&1 | tee -a "${results_dir}/out"
+
+# Run the deletion test (tiers down the cluster).
+go test -v -timeout 99999s ./deletiontests/... 2>&1 | tee -a "${results_dir}/out"
