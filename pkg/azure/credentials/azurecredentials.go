@@ -49,15 +49,15 @@ func FromSecret(ctx context.Context, ctrlClient client.Client, clusterID string)
 	return &sp, nil
 }
 
-func findClusterCR(ctx context.Context, ctrlClient client.Client, clusterID string) (*capiv1alpha3.Cluster, error) {
-	clusterList := &capiv1alpha3.ClusterList{}
-	err := ctrlClient.List(ctx, clusterList, client.MatchingLabels{capiv1alpha3.ClusterLabelName: clusterID})
+func findClusterCR(ctx context.Context, ctrlClient client.Client, clusterID string) (*capi.Cluster, error) {
+	clusterList := &capi.ClusterList{}
+	err := ctrlClient.List(ctx, clusterList, client.MatchingLabels{capi.ClusterLabelName: clusterID})
 	if err != nil {
 		return nil, microerror.Mask(err)
 	}
 
 	if len(clusterList.Items) != 1 {
-		return nil, microerror.Maskf(executionFailedError, "Unable to find ClusterCR with label %q = %q. Expected 1 result, %d found.", capiv1alpha3.ClusterLabelName, clusterID, len(clusterList.Items))
+		return nil, microerror.Maskf(executionFailedError, "Unable to find ClusterCR with label %q = %q. Expected 1 result, %d found.", capi.ClusterLabelName, clusterID, len(clusterList.Items))
 	}
 
 	return &clusterList.Items[0], nil
