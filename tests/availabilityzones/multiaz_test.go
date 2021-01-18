@@ -2,17 +2,17 @@ package availabilityzones
 
 import (
 	"context"
+	"errors"
 	"os"
 	"reflect"
 	"sort"
 	"testing"
 
-	"github.com/Azure/azure-sdk-for-go/services/compute/mgmt/2019-07-01/compute"
-	"github.com/Azure/go-autorest/autorest/azure/auth"
+	"github.com/giantswarm/backoff"
 	"github.com/giantswarm/microerror"
-	capiv1alpha3 "sigs.k8s.io/cluster-api/api/v1alpha3"
-	"sigs.k8s.io/cluster-api/exp/api/v1alpha3"
-	"sigs.k8s.io/controller-runtime/pkg/client"
+	"github.com/giantswarm/micrologger/microloggertest"
+	capi "sigs.k8s.io/cluster-api/api/v1alpha3"
+	ctrl "sigs.k8s.io/controller-runtime/pkg/client"
 
 	"github.com/giantswarm/sonobuoy-plugin/v5/tests/ctrlclient"
 )
@@ -33,23 +33,50 @@ func Test_AvailabilityZones(t *testing.T) {
 
 	clusterID, exists := os.LookupEnv("CLUSTER_ID")
 	if !exists {
-		t.Fatal("missing CLUSTER_ID environment variable")
+		t.Fatalf("missing CLUSTER_ID environment variable")
 	}
 
-	machinePoolList := &v1alpha3.MachinePoolList{}
-	err = cpCtrlClient.List(ctx, machinePoolList, client.MatchingLabels{capiv1alpha3.ClusterLabelName: clusterID})
+	cluster, err := findCluster(ctx, cpCtrlClient, clusterID)
+	if err != nil {
+		t.Fatalf("error finding cluster: %s", microerror.JSON(err))
+	}
+
+	providerSupport, err := GetProviderSupport(ctx, cpCtrlClient, cluster)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	expectedZones := machinePoolList.Items[0].Spec.FailureDomains
-
-	nodePoolAZsGetter, err := getNodepoolAZsGetter()
+	machinePool, err := providerSupport.CreateNodePool(ctx, cpCtrlClient, cluster, providerSupport.GetProviderAZs())
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	actualZones, err := nodePoolAZsGetter.GetNodePoolAZs(ctx, clusterID, machinePoolList.Items[0].Name)
+	// Wait for Node Pool to come up.
+	{
+		o := func() error {
+			err := cpCtrlClient.Get(ctx, ctrl.ObjectKey{Name: machinePool.Name, Namespace: machinePool.Namespace}, machinePool)
+			if err != nil {
+				// Wrap masked error with backoff.Permanent() to stop retries on unrecoverable error.
+				return backoff.Permanent(microerror.Mask(err))
+			}
+
+			// Return error for retry until node pool nodes are Ready.
+			if machinePool.Status.ReadyReplicas != *machinePool.Spec.Replicas {
+				return errors.New("node pool is not ready yet")
+			}
+
+			return nil
+		}
+		b := backoff.NewConstant(backoff.LongMaxWait, backoff.LongMaxInterval)
+		n := backoff.NewNotifier(microloggertest.New(), ctx)
+		err = backoff.RetryNotify(o, b, n)
+		if err != nil {
+			t.Fatalf("failed to get MachinePool %q for Cluster %q: %s", machinePool.Name, clusterID, microerror.JSON(err))
+		}
+	}
+
+	expectedZones := machinePool.Spec.FailureDomains
+	actualZones, err := providerSupport.GetNodePoolAZs(ctx, cluster.Name, machinePool.Name)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -62,38 +89,21 @@ func Test_AvailabilityZones(t *testing.T) {
 	}
 }
 
-func getNodepoolAZsGetter() (NodePoolAZGetter, error) {
-	var nodePoolAZsGetter NodePoolAZGetter
-	if os.Getenv(Provider) == "azure" {
-		virtualMachineScaleSetsClient, err := getVirtualMachineScaleSetsClient()
+func findCluster(ctx context.Context, client ctrl.Client, clusterID string) (*capi.Cluster, error) {
+	var cluster *capi.Cluster
+	{
+		var clusterList capi.ClusterList
+		err := client.List(ctx, &clusterList, ctrl.MatchingLabels{capi.ClusterLabelName: clusterID})
 		if err != nil {
-			return nil, err
+			return nil, microerror.Mask(err)
 		}
 
-		nodePoolAZsGetter, err = NewAzureNodePoolAZsGetter(&virtualMachineScaleSetsClient)
-		if err != nil {
-			return nil, err
+		if len(clusterList.Items) > 0 {
+			cluster = &clusterList.Items[0]
+		} else {
+			return nil, microerror.Maskf(invalidConfigError, "can't find cluster with ID %q", clusterID)
 		}
-	} else {
-		return nil, microerror.Maskf(invalidConfigError, "chosen provider %s must be one of: azure", Provider)
 	}
 
-	return nodePoolAZsGetter, nil
-}
-
-func getVirtualMachineScaleSetsClient() (compute.VirtualMachineScaleSetsClient, error) {
-	settings, err := auth.GetSettingsFromEnvironment()
-	if err != nil {
-		return compute.VirtualMachineScaleSetsClient{}, microerror.Mask(err)
-	}
-
-	authorizer, err := settings.GetAuthorizer()
-	if err != nil {
-		return compute.VirtualMachineScaleSetsClient{}, microerror.Mask(err)
-	}
-
-	virtualMachineScaleSetsClient := compute.NewVirtualMachineScaleSetsClient(settings.GetSubscriptionID())
-	virtualMachineScaleSetsClient.Client.Authorizer = authorizer
-
-	return virtualMachineScaleSetsClient, nil
+	return cluster, nil
 }
