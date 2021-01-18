@@ -6,7 +6,6 @@ require (
 	github.com/Azure/azure-sdk-for-go v46.4.0+incompatible
 	github.com/Azure/go-autorest/autorest/azure/auth v0.5.2
 	github.com/Azure/go-autorest/autorest/to v0.4.0
-	github.com/cenkalti/backoff v2.2.1+incompatible
 	github.com/giantswarm/apiextensions v0.4.20
 	github.com/giantswarm/apiextensions/v2 v2.6.2
 	github.com/giantswarm/apptest v0.8.0

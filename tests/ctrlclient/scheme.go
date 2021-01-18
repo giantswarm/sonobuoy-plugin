@@ -1,6 +1,7 @@
 package ctrlclient
 
 import (
+	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apiextensions-apiserver/pkg/apis/apiextensions"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -19,6 +20,7 @@ func init() {
 		capzv1alpha3.AddToScheme,
 		expcapiv1alpha3.AddToScheme,
 		expcapzv1alpha3.AddToScheme,
+		appsv1.AddToScheme,
 		corev1.AddToScheme,
 	}
 	err := schemeBuilder.AddToScheme(Scheme)
