@@ -9,8 +9,8 @@ import (
 	"github.com/giantswarm/microerror"
 	"github.com/giantswarm/micrologger"
 	"k8s.io/apimachinery/pkg/api/errors"
-	capzV1alpha3 "sigs.k8s.io/cluster-api-provider-azure/api/v1alpha3"
-	capiv1alpha3 "sigs.k8s.io/cluster-api/api/v1alpha3"
+	capz "sigs.k8s.io/cluster-api-provider-azure/api/v1alpha3"
+	capi "sigs.k8s.io/cluster-api/api/v1alpha3"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	azureclient "github.com/giantswarm/sonobuoy-plugin/v5/pkg/azure/client"
@@ -83,8 +83,8 @@ func Test_AzureDelete(t *testing.T) {
 	{
 		logger.Debugf(ctx, "Waiting for cluster CR for cluster %s to be deleted", clusterID)
 		o := func() error {
-			clusters := &capiv1alpha3.ClusterList{}
-			err := cpCtrlClient.List(ctx, clusters, client.MatchingLabels{capiv1alpha3.ClusterLabelName: clusterID})
+			clusters := &capi.ClusterList{}
+			err := cpCtrlClient.List(ctx, clusters, client.MatchingLabels{capi.ClusterLabelName: clusterID})
 			if err != nil {
 				return microerror.Mask(err)
 			}
@@ -131,7 +131,7 @@ func Test_AzureDelete(t *testing.T) {
 
 func deleteCluster(ctx context.Context, ctrlClient client.Client, logger micrologger.Logger, clusterID string) error {
 	labelSelector := client.MatchingLabels{}
-	labelSelector[capiv1alpha3.ClusterLabelName] = clusterID
+	labelSelector[capi.ClusterLabelName] = clusterID
 
 	crNamespace, err := getClusterNamespace(ctx, ctrlClient, labelSelector)
 	if IsNotFound(err) {
@@ -143,7 +143,7 @@ func deleteCluster(ctx context.Context, ctrlClient client.Client, logger microlo
 
 	// delete provider-independent cluster CRs
 	{
-		err = ctrlClient.DeleteAllOf(ctx, &capiv1alpha3.Cluster{}, labelSelector, namespace)
+		err = ctrlClient.DeleteAllOf(ctx, &capi.Cluster{}, labelSelector, namespace)
 		if errors.IsNotFound(err) {
 			// fall through
 		} else if err != nil {
@@ -155,7 +155,7 @@ func deleteCluster(ctx context.Context, ctrlClient client.Client, logger microlo
 
 	// delete AzureCluster CR
 	{
-		err = ctrlClient.DeleteAllOf(ctx, &capzV1alpha3.AzureCluster{}, labelSelector, inNamespace)
+		err = ctrlClient.DeleteAllOf(ctx, &capz.AzureCluster{}, labelSelector, inNamespace)
 		if errors.IsNotFound(err) {
 			logger.Debugf(ctx, "AzureCluster CR not found for cluster ID %q", clusterID)
 		} else if err != nil {
@@ -167,9 +167,9 @@ func deleteCluster(ctx context.Context, ctrlClient client.Client, logger microlo
 }
 
 func getClusterNamespace(ctx context.Context, ctrlClient client.Client, labelSelector client.MatchingLabels) (string, error) {
-	var cr capiv1alpha3.Cluster
+	var cr capi.Cluster
 	{
-		crs := &capiv1alpha3.ClusterList{}
+		crs := &capi.ClusterList{}
 
 		err := ctrlClient.List(ctx, crs, labelSelector)
 		if err != nil {
