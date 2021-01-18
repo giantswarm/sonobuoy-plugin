@@ -28,7 +28,7 @@ func Test_Autoscaler(t *testing.T) {
 
 	ctx := context.Background()
 
-	tcCtrlClient, err := ctrlclient.CreateTCCtrlClient(ctx)
+	tcCtrlClient, err := ctrlclient.CreateTCCtrlClient()
 	if err != nil {
 		t.Fatalf("error creating TC k8s client: %v", err)
 	}

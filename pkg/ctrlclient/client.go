@@ -1,7 +1,6 @@
 package ctrlclient
 
 import (
-	"context"
 	"os"
 
 	"github.com/giantswarm/microerror"
@@ -15,7 +14,7 @@ const (
 	TenantClusterKubeconfigContents = "TC_KUBECONFIG"
 )
 
-func GetCPKubeConfig(ctx context.Context) ([]byte, error) {
+func GetCPKubeConfig() ([]byte, error) {
 	kubeConfig, exists := os.LookupEnv(ControlPlaneKubeconfigContents)
 	if !exists {
 		return nil, microerror.Maskf(missingEnvironmentVariable, "the %s env var is required", ControlPlaneKubeconfigContents)
@@ -24,7 +23,7 @@ func GetCPKubeConfig(ctx context.Context) ([]byte, error) {
 	return []byte(kubeConfig), nil
 }
 
-func GetTCKubeConfig(ctx context.Context) ([]byte, error) {
+func GetTCKubeConfig() ([]byte, error) {
 	kubeConfig, exists := os.LookupEnv(TenantClusterKubeconfigContents)
 	if !exists {
 		return nil, microerror.Maskf(missingEnvironmentVariable, "the %s env var is required", TenantClusterKubeconfigContents)
@@ -33,8 +32,8 @@ func GetTCKubeConfig(ctx context.Context) ([]byte, error) {
 	return []byte(kubeConfig), nil
 }
 
-func CreateTCCtrlClient(ctx context.Context) (client.Client, error) {
-	kubeConfig, err := GetTCKubeConfig(ctx)
+func CreateTCCtrlClient() (client.Client, error) {
+	kubeConfig, err := GetTCKubeConfig()
 	if err != nil {
 		return nil, microerror.Mask(err)
 	}
@@ -47,8 +46,8 @@ func CreateTCCtrlClient(ctx context.Context) (client.Client, error) {
 	return client.New(rest.CopyConfig(restConfig), client.Options{Scheme: Scheme})
 }
 
-func CreateCPCtrlClient(ctx context.Context) (client.Client, error) {
-	kubeConfig, err := GetCPKubeConfig(ctx)
+func CreateCPCtrlClient() (client.Client, error) {
+	kubeConfig, err := GetCPKubeConfig()
 	if err != nil {
 		return nil, microerror.Mask(err)
 	}
