@@ -48,4 +48,4 @@ outfile=$(sonobuoy retrieve) && \
 
 - [Control Plane to Tenant Cluster connectivity](./tests/cptcconnectivity/README.md)
 - [Deploy hello world and ingress apps](./tests/ingress/README.md)
-
+- [Custom resources](./tests/customresources/README.md)
