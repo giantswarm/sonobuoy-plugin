@@ -8,8 +8,8 @@ import (
 	"github.com/Azure/azure-sdk-for-go/services/compute/mgmt/2019-07-01/compute"
 	"github.com/Azure/go-autorest/autorest/azure/auth"
 	"github.com/Azure/go-autorest/autorest/to"
-	"github.com/giantswarm/apiextensions/pkg/label"
-	"github.com/giantswarm/apiextensions/v2/pkg/annotation"
+	"github.com/giantswarm/apiextensions/v3/pkg/annotation"
+	"github.com/giantswarm/apiextensions/v3/pkg/label"
 	"github.com/giantswarm/microerror"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -23,6 +23,8 @@ import (
 )
 
 const (
+	Provider = "E2E_PROVIDER"
+
 	defaultVMSize = "Standard_D4s_v3"
 
 	clientIDKey       = "azure.azureoperator.clientid"

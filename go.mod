@@ -4,10 +4,10 @@ go 1.15
 
 require (
 	github.com/Azure/azure-sdk-for-go v46.4.0+incompatible
+	github.com/Azure/go-autorest/autorest v0.11.7
 	github.com/Azure/go-autorest/autorest/azure/auth v0.5.2
 	github.com/Azure/go-autorest/autorest/to v0.4.0
-	github.com/giantswarm/apiextensions v0.4.20
-	github.com/giantswarm/apiextensions/v2 v2.6.2
+	github.com/giantswarm/apiextensions/v3 v3.13.0
 	github.com/giantswarm/apptest v0.8.0
 	github.com/giantswarm/backoff v0.2.0
 	github.com/giantswarm/microerror v0.3.0

@@ -14,7 +14,7 @@ import (
 	capiv1alpha3 "sigs.k8s.io/cluster-api/api/v1alpha3"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	"github.com/giantswarm/sonobuoy-plugin/v5/tests/ctrlclient"
+	"github.com/giantswarm/sonobuoy-plugin/v5/pkg/ctrlclient"
 )
 
 const (
@@ -26,7 +26,7 @@ func Test_CPTCConnectivity(t *testing.T) {
 
 	ctx := context.Background()
 
-	cpCtrlClient, err := ctrlclient.CreateCPCtrlClient(ctx)
+	cpCtrlClient, err := ctrlclient.CreateCPCtrlClient()
 	if err != nil {
 		t.Fatalf("error creating CP k8s client: %v", err)
 	}

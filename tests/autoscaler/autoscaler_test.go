@@ -2,19 +2,20 @@ package ingress
 
 import (
 	"context"
+	"testing"
+	"time"
+
 	"github.com/Azure/go-autorest/autorest/to"
 	"github.com/giantswarm/backoff"
 	"github.com/giantswarm/microerror"
 	appsv1 "k8s.io/api/apps/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"testing"
-	"time"
 
 	"github.com/giantswarm/micrologger"
 	corev1 "k8s.io/api/core/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	"github.com/giantswarm/sonobuoy-plugin/v5/tests/ctrlclient"
+	"github.com/giantswarm/sonobuoy-plugin/v5/pkg/ctrlclient"
 )
 
 const (
@@ -27,7 +28,7 @@ func Test_Autoscaler(t *testing.T) {
 
 	ctx := context.Background()
 
-	tcCtrlClient, err := ctrlclient.CreateTCCtrlClient(ctx)
+	tcCtrlClient, err := ctrlclient.CreateTCCtrlClient()
 	if err != nil {
 		t.Fatalf("error creating TC k8s client: %v", err)
 	}

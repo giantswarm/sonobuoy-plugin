@@ -14,11 +14,7 @@ import (
 	capi "sigs.k8s.io/cluster-api/api/v1alpha3"
 	ctrl "sigs.k8s.io/controller-runtime/pkg/client"
 
-	"github.com/giantswarm/sonobuoy-plugin/v5/tests/ctrlclient"
-)
-
-const (
-	Provider = "E2E_PROVIDER"
+	"github.com/giantswarm/sonobuoy-plugin/v5/pkg/ctrlclient"
 )
 
 func Test_AvailabilityZones(t *testing.T) {
@@ -26,7 +22,7 @@ func Test_AvailabilityZones(t *testing.T) {
 
 	ctx := context.Background()
 
-	cpCtrlClient, err := ctrlclient.CreateCPCtrlClient(ctx)
+	cpCtrlClient, err := ctrlclient.CreateCPCtrlClient()
 	if err != nil {
 		t.Fatalf("error creating CP k8s client: %v", err)
 	}

@@ -16,7 +16,7 @@ import (
 	capiv1alpha3 "sigs.k8s.io/cluster-api/api/v1alpha3"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	"github.com/giantswarm/sonobuoy-plugin/v5/tests/ctrlclient"
+	"github.com/giantswarm/sonobuoy-plugin/v5/pkg/ctrlclient"
 )
 
 const (
@@ -40,7 +40,7 @@ func Test_Ingress(t *testing.T) {
 
 	ctx := context.Background()
 
-	cpCtrlClient, err := ctrlclient.CreateCPCtrlClient(ctx)
+	cpCtrlClient, err := ctrlclient.CreateCPCtrlClient()
 	if err != nil {
 		t.Fatalf("error creating CP k8s client: %v", err)
 	}
@@ -55,12 +55,12 @@ func Test_Ingress(t *testing.T) {
 		t.Fatal("missing CLUSTER_ID environment variable")
 	}
 
-	cpKubeConfig, err := ctrlclient.GetCPKubeConfig(ctx)
+	cpKubeConfig, err := ctrlclient.GetCPKubeConfig()
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	tcKubeConfig, err := ctrlclient.GetTCKubeConfig(ctx)
+	tcKubeConfig, err := ctrlclient.GetTCKubeConfig()
 	if err != nil {
 		t.Fatal(err)
 	}
