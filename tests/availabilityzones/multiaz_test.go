@@ -11,9 +11,9 @@ import (
 	"github.com/giantswarm/backoff"
 	"github.com/giantswarm/microerror"
 	"github.com/giantswarm/micrologger/microloggertest"
-	capi "sigs.k8s.io/cluster-api/api/v1alpha3"
 	ctrl "sigs.k8s.io/controller-runtime/pkg/client"
 
+	"github.com/giantswarm/sonobuoy-plugin/v5/pkg/capiutil"
 	"github.com/giantswarm/sonobuoy-plugin/v5/pkg/ctrlclient"
 	"github.com/giantswarm/sonobuoy-plugin/v5/pkg/provider"
 )
@@ -33,7 +33,7 @@ func Test_AvailabilityZones(t *testing.T) {
 		t.Fatalf("missing CLUSTER_ID environment variable")
 	}
 
-	cluster, err := findCluster(ctx, cpCtrlClient, clusterID)
+	cluster, err := capiutil.FindCluster(ctx, cpCtrlClient, clusterID)
 	if err != nil {
 		t.Fatalf("error finding cluster: %s", microerror.JSON(err))
 	}
@@ -84,23 +84,4 @@ func Test_AvailabilityZones(t *testing.T) {
 	if !reflect.DeepEqual(actualZones, expectedZones) {
 		t.Fatalf("The AZs used are not correct. Expected %s, got %s", expectedZones, actualZones)
 	}
-}
-
-func findCluster(ctx context.Context, client ctrl.Client, clusterID string) (*capi.Cluster, error) {
-	var cluster *capi.Cluster
-	{
-		var clusterList capi.ClusterList
-		err := client.List(ctx, &clusterList, ctrl.MatchingLabels{capi.ClusterLabelName: clusterID})
-		if err != nil {
-			return nil, microerror.Mask(err)
-		}
-
-		if len(clusterList.Items) > 0 {
-			cluster = &clusterList.Items[0]
-		} else {
-			return nil, microerror.Maskf(invalidConfigError, "can't find cluster with ID %q", clusterID)
-		}
-	}
-
-	return cluster, nil
 }
