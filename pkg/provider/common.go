@@ -3,6 +3,7 @@ package provider
 import (
 	"context"
 	"os"
+	"strings"
 
 	"github.com/giantswarm/microerror"
 	capi "sigs.k8s.io/cluster-api/api/v1alpha3"
@@ -14,7 +15,9 @@ const (
 )
 
 func GetProviderSupport(ctx context.Context, client ctrl.Client, cluster *capi.Cluster) (Support, error) {
-	switch os.Getenv(Provider) {
+	provider := os.Getenv(Provider)
+
+	switch strings.TrimSpace(provider) {
 	case "azure":
 		p, err := NewAzureProviderSupport(ctx, client, cluster)
 		if err != nil {
@@ -24,5 +27,5 @@ func GetProviderSupport(ctx context.Context, client ctrl.Client, cluster *capi.C
 		return p, nil
 	}
 
-	return nil, microerror.Maskf(executionFailedError, "unsupported provider")
+	return nil, microerror.Maskf(executionFailedError, "unsupported provider value in $%s: %q", Provider, provider)
 }
