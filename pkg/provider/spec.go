@@ -1,4 +1,4 @@
-package availabilityzones
+package provider
 
 import (
 	"context"
@@ -8,7 +8,7 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-type ProviderSupport interface {
+type Support interface {
 	CreateNodePool(ctx context.Context, client ctrl.Client, cluster *capi.Cluster, azs []string) (*expcapi.MachinePool, error)
 	GetProviderAZs() []string
 	GetNodePoolAZs(ctx context.Context, clusterID, nodepoolName string) ([]string, error)

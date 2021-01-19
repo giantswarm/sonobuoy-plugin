@@ -15,6 +15,7 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime/pkg/client"
 
 	"github.com/giantswarm/sonobuoy-plugin/v5/pkg/ctrlclient"
+	"github.com/giantswarm/sonobuoy-plugin/v5/pkg/provider"
 )
 
 func Test_AvailabilityZones(t *testing.T) {
@@ -37,7 +38,7 @@ func Test_AvailabilityZones(t *testing.T) {
 		t.Fatalf("error finding cluster: %s", microerror.JSON(err))
 	}
 
-	providerSupport, err := GetProviderSupport(ctx, cpCtrlClient, cluster)
+	providerSupport, err := provider.GetProviderSupport(ctx, cpCtrlClient, cluster)
 	if err != nil {
 		t.Fatal(err)
 	}

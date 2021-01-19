@@ -1,12 +1,9 @@
-package availabilityzones
+package provider
 
 import (
 	"context"
 	"fmt"
-	"os"
 
-	"github.com/Azure/azure-sdk-for-go/services/compute/mgmt/2019-07-01/compute"
-	"github.com/Azure/go-autorest/autorest/azure/auth"
 	"github.com/Azure/go-autorest/autorest/to"
 	"github.com/giantswarm/apiextensions/v3/pkg/annotation"
 	"github.com/giantswarm/apiextensions/v3/pkg/label"
@@ -20,52 +17,32 @@ import (
 	capi "sigs.k8s.io/cluster-api/api/v1alpha3"
 	expcapi "sigs.k8s.io/cluster-api/exp/api/v1alpha3"
 	ctrl "sigs.k8s.io/controller-runtime/pkg/client"
+
+	"github.com/giantswarm/sonobuoy-plugin/v5/pkg/azure"
+	"github.com/giantswarm/sonobuoy-plugin/v5/pkg/azure/credentials"
 )
 
 const (
-	Provider = "E2E_PROVIDER"
-
 	defaultVMSize = "Standard_D4s_v3"
-
-	clientIDKey       = "azure.azureoperator.clientid"
-	clientSecretKey   = "azure.azureoperator.clientsecret"
-	defaultAzureGUID  = "37f13270-5c7a-56ff-9211-8426baaeaabd"
-	partnerIDKey      = "azure.azureoperator.partnerid"
-	subscriptionIDKey = "azure.azureoperator.subscriptionid"
-	tenantIDKey       = "azure.azureoperator.tenantid"
 )
 
 type AzureProviderSupport struct {
-	virtualMachineScaleSetsClient *compute.VirtualMachineScaleSetsClient
+	azureClient *azure.Client
 }
 
-func GetProviderSupport(ctx context.Context, client ctrl.Client, cluster *capi.Cluster) (ProviderSupport, error) {
-	switch os.Getenv(Provider) {
-	case "azure":
-		p, err := NewAzureProviderSupport(ctx, client, cluster)
-		if err != nil {
-			return nil, microerror.Mask(err)
-		}
-
-		return p, nil
-	}
-
-	return nil, microerror.Maskf(executionFailedError, "unsupported provider")
-}
-
-func NewAzureProviderSupport(ctx context.Context, client ctrl.Client, cluster *capi.Cluster) (ProviderSupport, error) {
-	credentials, subscriptionID, err := findAzureCredentials(ctx, client, cluster)
+func NewAzureProviderSupport(ctx context.Context, client ctrl.Client, cluster *capi.Cluster) (Support, error) {
+	sp, err := credentials.ForCluster(ctx, client, cluster)
 	if err != nil {
 		return nil, microerror.Mask(err)
 	}
 
-	vmssClient, err := createVMSSClient(credentials, subscriptionID)
+	azureClient, err := azure.NewClient(azure.ClientConfig{ServicePrincipal: sp})
 	if err != nil {
 		return nil, microerror.Mask(err)
 	}
 
 	p := &AzureProviderSupport{
-		virtualMachineScaleSetsClient: vmssClient,
+		azureClient: azureClient,
 	}
 
 	return p, nil
@@ -92,7 +69,7 @@ func (p *AzureProviderSupport) GetProviderAZs() []string {
 func (p *AzureProviderSupport) GetNodePoolAZs(ctx context.Context, clusterID, nodepoolID string) ([]string, error) {
 	var zones []string
 	nodepoolVMSSName := fmt.Sprintf("nodepool-%s", nodepoolID)
-	vmss, err := p.virtualMachineScaleSetsClient.Get(ctx, clusterID, nodepoolVMSSName)
+	vmss, err := p.azureClient.VMSS.Get(ctx, clusterID, nodepoolVMSSName)
 	if err != nil {
 		return nil, microerror.Mask(err)
 	}
@@ -208,73 +185,4 @@ func (p *AzureProviderSupport) createAzureMachinePool(ctx context.Context, clien
 	}
 
 	return azureMachinePool, nil
-}
-
-func findAzureCredentials(ctx context.Context, client ctrl.Client, cluster *capi.Cluster) (auth.ClientCredentialsConfig, string, error) {
-	var secret *corev1.Secret
-	var err error
-	{
-		var secretList corev1.SecretList
-		err = client.List(ctx, &secretList, ctrl.MatchingLabels{label.Organization: cluster.Labels[label.Organization]})
-		if err != nil {
-			return auth.ClientCredentialsConfig{}, "", microerror.Mask(err)
-		}
-
-		if len(secretList.Items) > 0 {
-			secret = &secretList.Items[0]
-		} else {
-			secret := &corev1.Secret{}
-			err = client.Get(ctx, ctrl.ObjectKey{Name: "credential-default", Namespace: "giantswarm"}, secret)
-			if err != nil {
-				return auth.ClientCredentialsConfig{}, "", microerror.Mask(err)
-			}
-		}
-	}
-
-	var credentials auth.ClientCredentialsConfig
-	var subscriptionID string
-	{
-		credentials.ClientID, err = valueFromSecret(secret, clientIDKey)
-		if err != nil {
-			return auth.ClientCredentialsConfig{}, "", microerror.Mask(err)
-		}
-
-		credentials.ClientSecret, err = valueFromSecret(secret, clientSecretKey)
-		if err != nil {
-			return auth.ClientCredentialsConfig{}, "", microerror.Mask(err)
-		}
-
-		credentials.TenantID, err = valueFromSecret(secret, tenantIDKey)
-		if err != nil {
-			return auth.ClientCredentialsConfig{}, "", microerror.Mask(err)
-		}
-
-		subscriptionID, err = valueFromSecret(secret, subscriptionIDKey)
-		if err != nil {
-			return auth.ClientCredentialsConfig{}, "", microerror.Mask(err)
-		}
-	}
-
-	return credentials, subscriptionID, nil
-}
-
-func createVMSSClient(credentials auth.ClientCredentialsConfig, subscriptionID string) (*compute.VirtualMachineScaleSetsClient, error) {
-	authorizer, err := credentials.Authorizer()
-	if err != nil {
-		return nil, microerror.Mask(err)
-	}
-
-	virtualMachineScaleSetsClient := compute.NewVirtualMachineScaleSetsClient(subscriptionID)
-	virtualMachineScaleSetsClient.Client.Authorizer = authorizer
-
-	return &virtualMachineScaleSetsClient, nil
-}
-
-func valueFromSecret(secret *corev1.Secret, key string) (string, error) {
-	v, ok := secret.Data[key]
-	if !ok {
-		return "", microerror.Maskf(missingValueError, key)
-	}
-
-	return string(v), nil
 }
