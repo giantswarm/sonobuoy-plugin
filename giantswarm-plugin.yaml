@@ -9,26 +9,6 @@ spec:
     - name: TC_KUBECONFIG
     - name: CP_KUBECONFIG
     - name: CLUSTER_ID
-    - name: AZURE_CLIENT_ID
-      valueFrom:
-        secretKeyRef:
-          name: azure-api-credentials
-          key: clientid
-    - name: AZURE_CLIENT_SECRET
-      valueFrom:
-        secretKeyRef:
-          name: azure-api-credentials
-          key: clientsecret
-    - name: AZURE_TENANT_ID
-      valueFrom:
-        secretKeyRef:
-          name: azure-api-credentials
-          key: tenantid
-    - name: AZURE_SUBSCRIPTION_ID
-      valueFrom:
-        secretKeyRef:
-          name: azure-api-credentials
-          key: subscriptionid
   resources: { }
   volumeMounts:
     - mountPath: /tmp/results
