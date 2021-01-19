@@ -26,7 +26,7 @@ func Test_CPTCConnectivity(t *testing.T) {
 
 	ctx := context.Background()
 
-	cpCtrlClient, err := ctrlclient.CreateCPCtrlClient(ctx)
+	cpCtrlClient, err := ctrlclient.CreateCPCtrlClient()
 	if err != nil {
 		t.Fatalf("error creating CP k8s client: %v", err)
 	}
