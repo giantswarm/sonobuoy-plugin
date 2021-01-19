@@ -15,6 +15,7 @@ import (
 
 	azureclient "github.com/giantswarm/sonobuoy-plugin/v5/pkg/azure/client"
 	"github.com/giantswarm/sonobuoy-plugin/v5/pkg/azure/credentials"
+	"github.com/giantswarm/sonobuoy-plugin/v5/pkg/capiutil"
 	"github.com/giantswarm/sonobuoy-plugin/v5/pkg/ctrlclient"
 )
 
@@ -48,7 +49,12 @@ func Test_AzureDelete(t *testing.T) {
 		t.Fatal("missing CLUSTER_ID environment variable")
 	}
 
-	servicePrincipal, err := credentials.FromSecret(ctx, cpCtrlClient, clusterID)
+	cluster, err := capiutil.FindCluster(ctx, cpCtrlClient, clusterID)
+	if err != nil {
+		t.Fatal(microerror.JSON(err))
+	}
+
+	servicePrincipal, err := credentials.ForCluster(ctx, cpCtrlClient, cluster)
 	if err != nil {
 		t.Fatalf("can't get service principal credentials: %v", err)
 	}

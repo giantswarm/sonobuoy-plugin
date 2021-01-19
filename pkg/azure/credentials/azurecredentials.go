@@ -17,12 +17,7 @@ type ServicePrincipal struct {
 	SubscriptionID string
 }
 
-func FromSecret(ctx context.Context, client ctrl.Client, clusterID string) (*ServicePrincipal, error) {
-	// Find the cluster CR.
-	cluster, err := findClusterCR(ctx, client, clusterID)
-	if err != nil {
-		return nil, microerror.Mask(err)
-	}
+func ForCluster(ctx context.Context, client ctrl.Client, cluster *capi.Cluster) (*ServicePrincipal, error) {
 	// Extract the organization name.
 	var orgName string
 	{
@@ -49,25 +44,11 @@ func FromSecret(ctx context.Context, client ctrl.Client, clusterID string) (*Ser
 	return &sp, nil
 }
 
-func findClusterCR(ctx context.Context, client ctrl.Client, clusterID string) (*capi.Cluster, error) {
-	clusterList := &capi.ClusterList{}
-	err := client.List(ctx, clusterList, ctrl.MatchingLabels{capi.ClusterLabelName: clusterID})
-	if err != nil {
-		return nil, microerror.Mask(err)
-	}
-
-	if len(clusterList.Items) != 1 {
-		return nil, microerror.Maskf(executionFailedError, "Unable to find ClusterCR with label %q = %q. Expected 1 result, %d found.", capi.ClusterLabelName, clusterID, len(clusterList.Items))
-	}
-
-	return &clusterList.Items[0], nil
-}
-
 func findSecret(ctx context.Context, client ctrl.Client, orgName string) (*corev1.Secret, error) {
-	// Look for a secret with labels "app: credentiald" and "giantswarm.io/organization: <normalized org name>"
+	// Look for a secret with labels "app: credentiald" and "giantswarm.io/organization: org"
 	secrets := &corev1.SecretList{}
 
-	err := client.List(ctx, secrets, ctrl.MatchingLabels{"app": "credentiald", label.Organization: asDNSLabelName(orgName)})
+	err := client.List(ctx, secrets, ctrl.MatchingLabels{"app": "credentiald", label.Organization: orgName})
 	if err != nil {
 		return nil, microerror.Mask(err)
 	}
