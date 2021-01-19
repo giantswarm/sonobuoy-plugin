@@ -13,7 +13,7 @@ import (
 	capi "sigs.k8s.io/cluster-api/api/v1alpha3"
 	ctrl "sigs.k8s.io/controller-runtime/pkg/client"
 
-	azureclient "github.com/giantswarm/sonobuoy-plugin/v5/pkg/azure/client"
+	"github.com/giantswarm/sonobuoy-plugin/v5/pkg/azure"
 	"github.com/giantswarm/sonobuoy-plugin/v5/pkg/azure/credentials"
 	"github.com/giantswarm/sonobuoy-plugin/v5/pkg/capiutil"
 	"github.com/giantswarm/sonobuoy-plugin/v5/pkg/ctrlclient"
@@ -59,7 +59,7 @@ func Test_AzureDelete(t *testing.T) {
 		t.Fatalf("can't get service principal credentials: %v", err)
 	}
 
-	azureClient, err := azureclient.NewClient(azureclient.Config{ServicePrincipal: servicePrincipal})
+	azureClient, err := azure.NewClient(azure.ClientConfig{ServicePrincipal: servicePrincipal})
 	if err != nil {
 		t.Fatalf("error creating azure client: %v", err)
 	}
@@ -67,7 +67,7 @@ func Test_AzureDelete(t *testing.T) {
 	logger.Debugf(ctx, "Checking if resource group exists.")
 
 	// Check the resourge group exists.
-	exists, err = azureClient.ResourceGroupExists(ctx, clusterID)
+	exists, err = azureClient.ResourceGroup.Exists(ctx, clusterID)
 	if err != nil {
 		t.Fatalf("Unable to check if the cluster's resource group exists: %v", err)
 	}
@@ -115,7 +115,7 @@ func Test_AzureDelete(t *testing.T) {
 		logger.Debugf(ctx, "Waiting for resource group %s to be deleted", clusterID)
 
 		o := func() error {
-			exists, err := azureClient.ResourceGroupExists(ctx, clusterID)
+			exists, err := azureClient.ResourceGroup.Exists(ctx, clusterID)
 			if err != nil {
 				return microerror.Maskf(executionFailedError, "Error checking if the resource group exists: %v", err)
 			}
