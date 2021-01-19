@@ -1,6 +1,6 @@
 package azure
 
-import "github.com/Azure/azure-sdk-for-go/services/compute/mgmt/2019-07-01/compute"
+import "github.com/giantswarm/sonobuoy-plugin/v5/pkg/azure/internal/client"
 
 // Client groups different Azure API clients together as a convenient facade.
 type Client struct {
@@ -12,4 +12,4 @@ type Client struct {
  * Azure SDK Type wrappers
  */
 
-type VMSS *compute.VirtualMachineScaleSet
+type VMSS = client.VMSS

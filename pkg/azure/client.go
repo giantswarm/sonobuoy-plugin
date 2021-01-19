@@ -26,6 +26,7 @@ func NewClient(config ClientConfig) (*Client, error) {
 
 	c := &Client{
 		ResourceGroup: client.NewGroupsClient(authorizer, sp.SubscriptionID),
+		VMSS:          client.NewVMSSClient(authorizer, sp.SubscriptionID),
 	}
 
 	return c, nil
