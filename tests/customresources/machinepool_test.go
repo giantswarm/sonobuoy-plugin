@@ -6,6 +6,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/giantswarm/apiextensions/v3/pkg/annotation"
+	"github.com/giantswarm/apiextensions/v3/pkg/label"
 	"github.com/giantswarm/conditions/pkg/conditions"
 	capi "sigs.k8s.io/cluster-api/api/v1alpha3"
 	capiexp "sigs.k8s.io/cluster-api/exp/api/v1alpha3"
@@ -24,6 +26,8 @@ func Test_MachinePoolCR(t *testing.T) {
 		t.Fatalf("error creating CP k8s client: %v", err)
 	}
 
+	cluster := getTestedWorkloadCluster(ctx, t, cpCtrlClient)
+
 	machinePoolGetter := func(machinePool *capiexp.MachinePool) *capiexp.MachinePool {
 		freshMachinePool := capiexp.MachinePool{}
 		machinePoolKey := client.ObjectKey{Namespace: machinePool.Namespace, Name: machinePool.Name}
@@ -39,26 +43,69 @@ func Test_MachinePoolCR(t *testing.T) {
 	machinePools := getTestedMachinePools(ctx, t, cpCtrlClient)
 
 	for _, machinePool := range machinePools {
-		machinePoolToCheck := machinePool
+		mp := machinePool
+
+		// Check that Cluster and MachinePool desired release version matches
+		assertMachinePoolLabelMatchesClusterLabel(t, cluster, &mp, label.ReleaseVersion)
+
+		// Check that Cluster and MachinePool last deployed release version matches
+		assertMachinePoolAnnotationMatchesClusterAnnotation(t, cluster, &mp, annotation.LastDeployedReleaseVersion)
+
+		// Check that Cluster and MachinePool azure-operator version matches
+		assertMachinePoolLabelMatchesClusterLabel(t, cluster, &mp, label.AzureOperatorVersion)
+
+		// Check if specified number of replicas is discovered
+		if *mp.Spec.Replicas != mp.Status.Replicas {
+			t.Fatalf("specified %d replicas, found %d", *mp.Spec.Replicas, mp.Status.Replicas)
+		}
+
+		// Check if all discovered replicas are ready
+		if mp.Status.Replicas != mp.Status.ReadyReplicas {
+			t.Fatalf("%d replicas found, but %d are ready", mp.Status.Replicas, mp.Status.AvailableReplicas)
+		}
 
 		// Wait for Ready condition to be True
-		waitForMachinePoolCondition(&machinePoolToCheck, capi.ReadyCondition, capiconditions.IsTrue, machinePoolGetter)
+		waitForMachinePoolCondition(&mp, capi.ReadyCondition, capiconditions.IsTrue, machinePoolGetter)
 
 		// Wait for Creating condition to be False
-		waitForMachinePoolCondition(&machinePoolToCheck, conditions.Creating, capiconditions.IsFalse, machinePoolGetter)
+		waitForMachinePoolCondition(&mp, conditions.Creating, capiconditions.IsFalse, machinePoolGetter)
 
 		// Wait for Upgrading condition to be False
-		waitForMachinePoolCondition(&machinePoolToCheck, conditions.Upgrading, capiconditions.IsFalse, machinePoolGetter)
+		waitForMachinePoolCondition(&mp, conditions.Upgrading, capiconditions.IsFalse, machinePoolGetter)
 
 		// Verify that InfrastructureReady condition is True
-		if !conditions.IsInfrastructureReadyTrue(&machinePoolToCheck) {
+		if !conditions.IsInfrastructureReadyTrue(&mp) {
 			t.Fatalf("MachinePool InfrastructureReady condition is not True")
 		}
 
 		// Verify that ReplicasReady condition is True
-		if !conditions.IsReplicasReadyTrue(&machinePoolToCheck) {
+		if !conditions.IsReplicasReadyTrue(&mp) {
 			t.Fatalf("MachinePool ReplicasReady condition is not True")
 		}
+	}
+}
+
+func assertMachinePoolLabelMatchesClusterLabel(t *testing.T, cluster *capi.Cluster, machinePool *capiexp.MachinePool, label string) {
+	clusterLabel := cluster.Labels[label]
+	machinePoolLabel := machinePool.Labels[label]
+
+	if machinePoolLabel != clusterLabel {
+		t.Fatalf("expected MachinePool label %q to have value %q (to match Cluster CR), but got %q",
+			label,
+			clusterLabel,
+			machinePoolLabel)
+	}
+}
+
+func assertMachinePoolAnnotationMatchesClusterAnnotation(t *testing.T, cluster *capi.Cluster, machinePool *capiexp.MachinePool, annotation string) {
+	clusterAnnotation := cluster.Annotations[annotation]
+	machinePoolAnnotation := machinePool.Annotations[annotation]
+
+	if machinePoolAnnotation != clusterAnnotation {
+		t.Fatalf("expected MachinePool annotation %q to have value %q (to match Cluster CR), but got %q",
+			annotation,
+			clusterAnnotation,
+			machinePoolAnnotation)
 	}
 }
 

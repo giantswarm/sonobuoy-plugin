@@ -9,7 +9,7 @@ require (
 	github.com/giantswarm/apiextensions/v3 v3.13.0
 	github.com/giantswarm/apptest v0.8.0
 	github.com/giantswarm/backoff v0.2.0
-	github.com/giantswarm/conditions v0.2.1-0.20210119121601-295351e0fac4
+	github.com/giantswarm/conditions v0.3.0
 	github.com/giantswarm/microerror v0.3.0
 	github.com/giantswarm/micrologger v0.4.0
 	k8s.io/api v0.18.9

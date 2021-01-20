@@ -6,8 +6,9 @@ import (
 	"testing"
 	"time"
 
+	"github.com/giantswarm/apiextensions/v3/pkg/annotation"
+	"github.com/giantswarm/apiextensions/v3/pkg/label"
 	"github.com/giantswarm/conditions/pkg/conditions"
-	"github.com/giantswarm/microerror"
 	capi "sigs.k8s.io/cluster-api/api/v1alpha3"
 	capiconditions "sigs.k8s.io/cluster-api/util/conditions"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -33,10 +34,15 @@ func Test_ClusterCR(t *testing.T) {
 	cluster := clusterGetter()
 
 	//
-	// Test Spec
+	// Test metadata
 	//
-	if cluster.Spec.ClusterNetwork == nil {
-		t.Fatalf("ClusterNetwork can't be null, %v", microerror.Mask(emptyClusterNetworkError))
+	desiredRelease := cluster.Labels[label.ReleaseVersion]
+	lastDeployedReleaseRelease := cluster.Annotations[annotation.LastDeployedReleaseVersion]
+	if lastDeployedReleaseRelease != desiredRelease {
+		t.Fatalf(
+			"expected last deployed release %q and desired release %q to match",
+			lastDeployedReleaseRelease,
+			desiredRelease)
 	}
 
 	//
