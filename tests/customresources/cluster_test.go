@@ -102,4 +102,3 @@ func waitForClusterCondition(cluster *capi.Cluster, conditionType capi.Condition
 }
 
 type clusterGetterFunc func() *capi.Cluster
-

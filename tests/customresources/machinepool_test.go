@@ -46,13 +46,13 @@ func Test_MachinePoolCR(t *testing.T) {
 		mp := machinePool
 
 		// Check that Cluster and MachinePool desired release version matches
-		assertLabelMatchesClusterLabel(t, cluster, &mp, label.ReleaseVersion)
+		assertLabelIsEqual(t, cluster, &mp, label.ReleaseVersion)
 
 		// Check that Cluster and MachinePool last deployed release version matches
-		assertAnnotationMatchesClusterAnnotation(t, cluster, &mp, annotation.LastDeployedReleaseVersion)
+		assertAnnotationIsEqual(t, cluster, &mp, annotation.LastDeployedReleaseVersion)
 
 		// Check that Cluster and MachinePool azure-operator version matches
-		assertLabelMatchesClusterLabel(t, cluster, &mp, label.AzureOperatorVersion)
+		assertLabelIsEqual(t, cluster, &mp, label.AzureOperatorVersion)
 
 		// Check if specified number of replicas is discovered
 		if *mp.Spec.Replicas != mp.Status.Replicas {

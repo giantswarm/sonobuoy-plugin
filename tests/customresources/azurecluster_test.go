@@ -27,13 +27,13 @@ func Test_AzureClusterCR(t *testing.T) {
 	azureCluster := getTestedAzureCluster(ctx, t, cpCtrlClient)
 
 	// Check that Cluster and MachinePool desired release version matches
-	assertLabelMatchesClusterLabel(t, cluster, azureCluster, label.ReleaseVersion)
+	assertLabelIsEqual(t, cluster, azureCluster, label.ReleaseVersion)
 
 	// Check that Cluster and MachinePool last deployed release version matches
-	assertAnnotationMatchesClusterAnnotation(t, cluster, azureCluster, annotation.LastDeployedReleaseVersion)
+	assertAnnotationIsEqual(t, cluster, azureCluster, annotation.LastDeployedReleaseVersion)
 
 	// Check that Cluster and MachinePool azure-operator version matches
-	assertLabelMatchesClusterLabel(t, cluster, azureCluster, label.AzureOperatorVersion)
+	assertLabelIsEqual(t, cluster, azureCluster, label.AzureOperatorVersion)
 }
 
 func getTestedAzureCluster(ctx context.Context, t *testing.T, cpCtrlClient client.Client) *capz.AzureCluster {

@@ -16,31 +16,35 @@ type runtimeObject interface {
 	runtime.Object
 }
 
-func assertLabelMatchesClusterLabel(t *testing.T, cluster *v1alpha3.Cluster, otherObject runtimeObject, label string) {
-	clusterLabel := cluster.Labels[label]
-	otherObjectLabel := otherObject.GetLabels()[label]
+func assertLabelIsEqual(t *testing.T, referenceObject runtimeObject, otherObject runtimeObject, label string) {
+	referenceLabel := referenceObject.GetLabels()[label]
+	otherLabel := otherObject.GetLabels()[label]
+	referenceObjectKind := referenceObject.GetObjectKind()
 	otherObjectKind := otherObject.GetObjectKind()
 
-	if otherObjectLabel != clusterLabel {
-		t.Fatalf("expected %s label %q to have value %q (to match Cluster CR), but got %q",
+	if otherLabel != referenceLabel {
+		t.Fatalf("expected %s label %q to have value %q (to match %s CR), but got %q",
 			otherObjectKind.GroupVersionKind().Kind,
 			label,
-			clusterLabel,
-			otherObjectLabel)
+			referenceLabel,
+			referenceObjectKind.GroupVersionKind().Kind,
+			otherLabel)
 	}
 }
 
-func assertAnnotationMatchesClusterAnnotation(t *testing.T, cluster *v1alpha3.Cluster, otherObject runtimeObject, annotation string) {
-	clusterAnnotation := cluster.Annotations[annotation]
-	otherObjectAnnotation := otherObject.GetAnnotations()[annotation]
+func assertAnnotationIsEqual(t *testing.T, referenceObject runtimeObject, otherObject runtimeObject, annotation string) {
+	referenceAnnotation := referenceObject.GetAnnotations()[annotation]
+	otherAnnotation := otherObject.GetAnnotations()[annotation]
+	referenceObjectKind := referenceObject.GetObjectKind()
 	otherObjectKind := otherObject.GetObjectKind()
 
-	if otherObjectAnnotation != clusterAnnotation {
-		t.Fatalf("expected %s annotation %q to have value %q (to match Cluster CR), but got %q",
+	if otherAnnotation != referenceAnnotation {
+		t.Fatalf("expected %s annotation %q to have value %q (to match %s CR), but got %q",
 			otherObjectKind.GroupVersionKind().Kind,
 			annotation,
-			clusterAnnotation,
-			otherObjectAnnotation)
+			referenceAnnotation,
+			referenceObjectKind.GroupVersionKind().Kind,
+			otherAnnotation)
 	}
 }
 
