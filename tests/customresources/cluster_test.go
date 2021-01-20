@@ -14,8 +14,6 @@ import (
 	"github.com/giantswarm/sonobuoy-plugin/v5/pkg/ctrlclient"
 )
 
-type conditionCheck func(cluster capiconditions.Getter, conditionType capi.ConditionType) bool
-
 func Test_ClusterCR(t *testing.T) {
 	var err error
 	ctx := context.Background()

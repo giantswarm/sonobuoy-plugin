@@ -4,11 +4,13 @@ import (
 	"context"
 	"os"
 	"testing"
+	"time"
 
 	"github.com/giantswarm/apiextensions/v3/pkg/annotation"
 	"github.com/giantswarm/apiextensions/v3/pkg/label"
 	capz "sigs.k8s.io/cluster-api-provider-azure/api/v1alpha3"
 	capi "sigs.k8s.io/cluster-api/api/v1alpha3"
+	capiconditions "sigs.k8s.io/cluster-api/util/conditions"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	"github.com/giantswarm/sonobuoy-plugin/v5/pkg/ctrlclient"
@@ -24,7 +26,12 @@ func Test_AzureClusterCR(t *testing.T) {
 	}
 
 	cluster := getTestedCluster(ctx, t, cpCtrlClient)
-	azureCluster := getTestedAzureCluster(ctx, t, cpCtrlClient)
+
+	azureClusterGetter := func() *capz.AzureCluster {
+		return getTestedAzureCluster(ctx, t, cpCtrlClient)
+	}
+
+	azureCluster := azureClusterGetter()
 
 	// Check that Cluster and MachinePool desired release version matches
 	assertLabelIsEqual(t, cluster, azureCluster, label.ReleaseVersion)
@@ -34,6 +41,9 @@ func Test_AzureClusterCR(t *testing.T) {
 
 	// Check that Cluster and MachinePool azure-operator version matches
 	assertLabelIsEqual(t, cluster, azureCluster, label.AzureOperatorVersion)
+
+	// Wait for Ready condition to be True
+	waitForAzureClusterCondition(azureCluster, capi.ReadyCondition, capiconditions.IsTrue, azureClusterGetter)
 }
 
 func getTestedAzureCluster(ctx context.Context, t *testing.T, cpCtrlClient client.Client) *capz.AzureCluster {
@@ -55,3 +65,15 @@ func getTestedAzureCluster(ctx context.Context, t *testing.T, cpCtrlClient clien
 	azureCluster := azureClusterList.Items[0]
 	return &azureCluster
 }
+
+func waitForAzureClusterCondition(cluster *capz.AzureCluster, conditionType capi.ConditionType, check conditionCheck, azureClusterGetterFunc azureClusterGetterFunc) {
+	checkResult := check(cluster, conditionType)
+
+	for ; checkResult != true; checkResult = check(cluster, conditionType) {
+		time.Sleep(1 * time.Minute)
+		updatedAzureClusterCR := azureClusterGetterFunc()
+		*cluster = *updatedAzureClusterCR
+	}
+}
+
+type azureClusterGetterFunc func() *capz.AzureCluster

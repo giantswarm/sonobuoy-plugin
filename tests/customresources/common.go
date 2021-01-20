@@ -8,6 +8,7 @@ import (
 	"k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/cluster-api/api/v1alpha3"
+	"sigs.k8s.io/cluster-api/util/conditions"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -67,3 +68,5 @@ func getTestedCluster(ctx context.Context, t *testing.T, cpCtrlClient client.Cli
 	cluster := clusterList.Items[0]
 	return &cluster
 }
+
+type conditionCheck func(cluster conditions.Getter, conditionType v1alpha3.ConditionType) bool

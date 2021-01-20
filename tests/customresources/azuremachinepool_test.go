@@ -4,6 +4,7 @@ import (
 	"context"
 	"os"
 	"testing"
+	"time"
 
 	"github.com/giantswarm/apiextensions/v3/pkg/annotation"
 	"github.com/giantswarm/apiextensions/v3/pkg/label"
@@ -11,6 +12,7 @@ import (
 	capzexp "sigs.k8s.io/cluster-api-provider-azure/exp/api/v1alpha3"
 	capi "sigs.k8s.io/cluster-api/api/v1alpha3"
 	capiexp "sigs.k8s.io/cluster-api/exp/api/v1alpha3"
+	capiconditions "sigs.k8s.io/cluster-api/util/conditions"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	"github.com/giantswarm/sonobuoy-plugin/v5/pkg/ctrlclient"
@@ -28,6 +30,18 @@ func Test_AzureMachinePoolCR(t *testing.T) {
 	cluster := getTestedCluster(ctx, t, cpCtrlClient)
 	azureMachinePools := getTestedAzureMachinePools(ctx, t, cpCtrlClient)
 
+	azureMachinePoolGetter := func(azureMachinePool *capzexp.AzureMachinePool) *capzexp.AzureMachinePool {
+		freshAzureMachinePool := capzexp.AzureMachinePool{}
+		azureMachinePoolKey := client.ObjectKey{Namespace: azureMachinePool.Namespace, Name: azureMachinePool.Name}
+
+		err := cpCtrlClient.Get(ctx, azureMachinePoolKey, &freshAzureMachinePool)
+		if err != nil {
+			t.Fatalf("error getting AzureMachinePool %s", azureMachinePoolKey.String())
+		}
+
+		return &freshAzureMachinePool
+	}
+
 	for _, azureMachinePool := range azureMachinePools {
 		amp := azureMachinePool
 
@@ -44,6 +58,9 @@ func Test_AzureMachinePoolCR(t *testing.T) {
 
 		// Check that MachinePool and AzureMachinePool giantswarm.io/machine-pool label matches
 		assertLabelIsEqual(t, machinePool, &amp, label.MachinePool)
+
+		// Wait for Ready condition to be True
+		waitForAzureMachinePoolCondition(&amp, capi.ReadyCondition, capiconditions.IsTrue, azureMachinePoolGetter)
 	}
 }
 
@@ -75,4 +92,16 @@ func getMachinePoolFromMetadata(ctx context.Context, t *testing.T, cpCtrlClient 
 	}
 
 	return &machinePool
+}
+
+type azureMachinePoolGetterFunc func(azureMachinePool *capzexp.AzureMachinePool) *capzexp.AzureMachinePool
+
+func waitForAzureMachinePoolCondition(azureMachinePool *capzexp.AzureMachinePool, conditionType capi.ConditionType, check conditionCheck, azureMachinePoolGetter azureMachinePoolGetterFunc) {
+	checkResult := check(azureMachinePool, conditionType)
+
+	for ; checkResult != true; checkResult = check(azureMachinePool, conditionType) {
+		time.Sleep(1 * time.Minute)
+		refreshedMachinePoolCR := azureMachinePoolGetter(azureMachinePool)
+		*azureMachinePool = *refreshedMachinePoolCR
+	}
 }
