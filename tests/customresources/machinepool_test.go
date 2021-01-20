@@ -26,7 +26,7 @@ func Test_MachinePoolCR(t *testing.T) {
 		t.Fatalf("error creating CP k8s client: %v", err)
 	}
 
-	cluster := getTestedWorkloadCluster(ctx, t, cpCtrlClient)
+	cluster := getTestedCluster(ctx, t, cpCtrlClient)
 
 	machinePoolGetter := func(machinePool *capiexp.MachinePool) *capiexp.MachinePool {
 		freshMachinePool := capiexp.MachinePool{}
@@ -46,13 +46,13 @@ func Test_MachinePoolCR(t *testing.T) {
 		mp := machinePool
 
 		// Check that Cluster and MachinePool desired release version matches
-		assertMachinePoolLabelMatchesClusterLabel(t, cluster, &mp, label.ReleaseVersion)
+		assertLabelMatchesClusterLabel(t, cluster, &mp, label.ReleaseVersion)
 
 		// Check that Cluster and MachinePool last deployed release version matches
-		assertMachinePoolAnnotationMatchesClusterAnnotation(t, cluster, &mp, annotation.LastDeployedReleaseVersion)
+		assertAnnotationMatchesClusterAnnotation(t, cluster, &mp, annotation.LastDeployedReleaseVersion)
 
 		// Check that Cluster and MachinePool azure-operator version matches
-		assertMachinePoolLabelMatchesClusterLabel(t, cluster, &mp, label.AzureOperatorVersion)
+		assertLabelMatchesClusterLabel(t, cluster, &mp, label.AzureOperatorVersion)
 
 		// Check if specified number of replicas is discovered
 		if *mp.Spec.Replicas != mp.Status.Replicas {
@@ -82,30 +82,6 @@ func Test_MachinePoolCR(t *testing.T) {
 		if !conditions.IsReplicasReadyTrue(&mp) {
 			t.Fatalf("MachinePool ReplicasReady condition is not True")
 		}
-	}
-}
-
-func assertMachinePoolLabelMatchesClusterLabel(t *testing.T, cluster *capi.Cluster, machinePool *capiexp.MachinePool, label string) {
-	clusterLabel := cluster.Labels[label]
-	machinePoolLabel := machinePool.Labels[label]
-
-	if machinePoolLabel != clusterLabel {
-		t.Fatalf("expected MachinePool label %q to have value %q (to match Cluster CR), but got %q",
-			label,
-			clusterLabel,
-			machinePoolLabel)
-	}
-}
-
-func assertMachinePoolAnnotationMatchesClusterAnnotation(t *testing.T, cluster *capi.Cluster, machinePool *capiexp.MachinePool, annotation string) {
-	clusterAnnotation := cluster.Annotations[annotation]
-	machinePoolAnnotation := machinePool.Annotations[annotation]
-
-	if machinePoolAnnotation != clusterAnnotation {
-		t.Fatalf("expected MachinePool annotation %q to have value %q (to match Cluster CR), but got %q",
-			annotation,
-			clusterAnnotation,
-			machinePoolAnnotation)
 	}
 }
 

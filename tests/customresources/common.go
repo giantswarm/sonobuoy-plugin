@@ -1,0 +1,65 @@
+package customresources
+
+import (
+	"context"
+	"os"
+	"testing"
+
+	"k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
+	"sigs.k8s.io/cluster-api/api/v1alpha3"
+	"sigs.k8s.io/controller-runtime/pkg/client"
+)
+
+type runtimeObject interface {
+	v1.Object
+	runtime.Object
+}
+
+func assertLabelMatchesClusterLabel(t *testing.T, cluster *v1alpha3.Cluster, otherObject runtimeObject, label string) {
+	clusterLabel := cluster.Labels[label]
+	otherObjectLabel := otherObject.GetLabels()[label]
+	otherObjectKind := otherObject.GetObjectKind()
+
+	if otherObjectLabel != clusterLabel {
+		t.Fatalf("expected %s label %q to have value %q (to match Cluster CR), but got %q",
+			otherObjectKind.GroupVersionKind().Kind,
+			label,
+			clusterLabel,
+			otherObjectLabel)
+	}
+}
+
+func assertAnnotationMatchesClusterAnnotation(t *testing.T, cluster *v1alpha3.Cluster, otherObject runtimeObject, annotation string) {
+	clusterAnnotation := cluster.Annotations[annotation]
+	otherObjectAnnotation := otherObject.GetAnnotations()[annotation]
+	otherObjectKind := otherObject.GetObjectKind()
+
+	if otherObjectAnnotation != clusterAnnotation {
+		t.Fatalf("expected %s annotation %q to have value %q (to match Cluster CR), but got %q",
+			otherObjectKind.GroupVersionKind().Kind,
+			annotation,
+			clusterAnnotation,
+			otherObjectAnnotation)
+	}
+}
+
+func getTestedCluster(ctx context.Context, t *testing.T, cpCtrlClient client.Client) *v1alpha3.Cluster {
+	clusterID, exists := os.LookupEnv("CLUSTER_ID")
+	if !exists {
+		t.Fatal("missing CLUSTER_ID environment variable")
+	}
+
+	clusterList := &v1alpha3.ClusterList{}
+	err := cpCtrlClient.List(ctx, clusterList, client.MatchingLabels{v1alpha3.ClusterLabelName: clusterID})
+	if err != nil {
+		t.Fatalf("error listing Clusters in CP k8s API: %v", err)
+	}
+
+	if len(clusterList.Items) != 1 {
+		t.Fatalf("found %d clusters with cluster ID %s", len(clusterList.Items), clusterID)
+	}
+
+	cluster := clusterList.Items[0]
+	return &cluster
+}

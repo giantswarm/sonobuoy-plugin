@@ -2,7 +2,6 @@ package customresources
 
 import (
 	"context"
-	"os"
 	"testing"
 	"time"
 
@@ -11,7 +10,6 @@ import (
 	"github.com/giantswarm/conditions/pkg/conditions"
 	capi "sigs.k8s.io/cluster-api/api/v1alpha3"
 	capiconditions "sigs.k8s.io/cluster-api/util/conditions"
-	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	"github.com/giantswarm/sonobuoy-plugin/v5/pkg/ctrlclient"
 )
@@ -28,7 +26,7 @@ func Test_ClusterCR(t *testing.T) {
 	}
 
 	clusterGetter := func() *capi.Cluster {
-		return getTestedWorkloadCluster(ctx, t, cpCtrlClient)
+		return getTestedCluster(ctx, t, cpCtrlClient)
 	}
 
 	cluster := clusterGetter()
@@ -105,22 +103,3 @@ func waitForClusterCondition(cluster *capi.Cluster, conditionType capi.Condition
 
 type clusterGetterFunc func() *capi.Cluster
 
-func getTestedWorkloadCluster(ctx context.Context, t *testing.T, cpCtrlClient client.Client) *capi.Cluster {
-	clusterID, exists := os.LookupEnv("CLUSTER_ID")
-	if !exists {
-		t.Fatal("missing CLUSTER_ID environment variable")
-	}
-
-	clusterList := &capi.ClusterList{}
-	err := cpCtrlClient.List(ctx, clusterList, client.MatchingLabels{capi.ClusterLabelName: clusterID})
-	if err != nil {
-		t.Fatalf("error listing Clusters in CP k8s API: %v", err)
-	}
-
-	if len(clusterList.Items) != 1 {
-		t.Fatalf("found %d clusters with cluster ID %s", len(clusterList.Items), clusterID)
-	}
-
-	cluster := clusterList.Items[0]
-	return &cluster
-}
