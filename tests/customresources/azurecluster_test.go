@@ -6,7 +6,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/giantswarm/apiextensions/v3/pkg/annotation"
 	"github.com/giantswarm/apiextensions/v3/pkg/label"
 	capz "sigs.k8s.io/cluster-api-provider-azure/api/v1alpha3"
 	capi "sigs.k8s.io/cluster-api/api/v1alpha3"
@@ -35,9 +34,6 @@ func Test_AzureClusterCR(t *testing.T) {
 
 	// Check that Cluster and MachinePool desired release version matches
 	assertLabelIsEqual(t, cluster, azureCluster, label.ReleaseVersion)
-
-	// Check that Cluster and MachinePool last deployed release version matches
-	assertAnnotationIsEqual(t, cluster, azureCluster, annotation.LastDeployedReleaseVersion)
 
 	// Check that Cluster and MachinePool azure-operator version matches
 	assertLabelIsEqual(t, cluster, azureCluster, label.AzureOperatorVersion)
