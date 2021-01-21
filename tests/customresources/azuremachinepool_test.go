@@ -8,6 +8,7 @@ import (
 
 	"github.com/giantswarm/apiextensions/v3/pkg/label"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	capz "sigs.k8s.io/cluster-api-provider-azure/api/v1alpha3"
 	capzexp "sigs.k8s.io/cluster-api-provider-azure/exp/api/v1alpha3"
 	capi "sigs.k8s.io/cluster-api/api/v1alpha3"
 	capiexp "sigs.k8s.io/cluster-api/exp/api/v1alpha3"
@@ -44,6 +45,9 @@ func Test_AzureMachinePoolCR(t *testing.T) {
 	for _, azureMachinePool := range azureMachinePools {
 		amp := azureMachinePool
 
+		//
+		// Check Metadata
+		//
 		// Check that Cluster and AzureMachinePool desired release version matches
 		assertLabelIsEqual(t, cluster, &amp, label.ReleaseVersion)
 
@@ -55,8 +59,54 @@ func Test_AzureMachinePoolCR(t *testing.T) {
 		// Check that MachinePool and AzureMachinePool giantswarm.io/machine-pool label matches
 		assertLabelIsEqual(t, machinePool, &amp, label.MachinePool)
 
+		//
+		// Check Spec
+		//
+		if len(amp.Spec.ProviderID) == 0 {
+			t.Fatalf("AzureMachinePool %s/%s does not have Spec.ProviderID field set", amp.Namespace, amp.Name)
+		}
+
+		desiredReplicas := *machinePool.Spec.Replicas
+		if len(amp.Spec.ProviderIDList) != int(desiredReplicas) {
+			t.Fatalf("expected %d replicas for AzureMachinePool %s/%s, but found %d in AzureMachinePool.Spec.ProviderIDList",
+				int(desiredReplicas),
+				amp.Namespace,
+				amp.Name,
+				len(amp.Spec.ProviderIDList))
+		}
+
+		//
+		// Check Status
+		//
+		if amp.Status.Replicas != desiredReplicas {
+			t.Fatalf("expected %d replicas for AzureMachinePool %s/%s, but found %d in AzureMachinePool.Status.Replicas",
+				desiredReplicas,
+				amp.Namespace,
+				amp.Name,
+				amp.Status.Replicas)
+		}
+
+		if amp.Status.ProvisioningState == nil {
+			t.Fatalf("AzureMachinePool %s/%s Status.ProvisioningState is not set", amp.Namespace, amp.Name)
+		}
+
+		if *amp.Status.ProvisioningState != capz.VMStateSucceeded {
+			t.Fatalf("expected AzureMachinePool %s/%s Status.ProvisioningState is equal to %q, but got %q",
+				amp.Namespace,
+				amp.Name,
+				capz.VMStateSucceeded,
+				*amp.Status.ProvisioningState)
+		}
+
 		// Wait for Ready condition to be True
 		waitForAzureMachinePoolCondition(&amp, capi.ReadyCondition, capiconditions.IsTrue, azureMachinePoolGetter)
+
+		if !amp.Status.Ready {
+			t.Fatalf("AzureMachinePool %s/%s is not ready, Status.Ready == %t",
+				amp.Namespace,
+				amp.Name,
+				amp.Status.Ready)
+		}
 	}
 }
 
