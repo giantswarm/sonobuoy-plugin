@@ -17,6 +17,7 @@ import (
 	"github.com/giantswarm/sonobuoy-plugin/v5/pkg/azure/credentials"
 	"github.com/giantswarm/sonobuoy-plugin/v5/pkg/capiutil"
 	"github.com/giantswarm/sonobuoy-plugin/v5/pkg/ctrlclient"
+	"github.com/giantswarm/sonobuoy-plugin/v5/pkg/provider"
 )
 
 func Test_AzureDelete(t *testing.T) {
@@ -29,12 +30,12 @@ func Test_AzureDelete(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	provider, exists := os.LookupEnv("PROVIDER")
+	providerName, exists := os.LookupEnv(provider.ProviderEnvVarName)
 	if !exists {
-		t.Fatal("missing PROVIDER environment variable")
+		t.Fatalf("missing %s environment variable", provider.ProviderEnvVarName)
 	}
 
-	if provider != "azure" {
+	if providerName != "azure" {
 		logger.Debugf(ctx, "Only Azure provider is supported by this test, skipping")
 		return
 	}
