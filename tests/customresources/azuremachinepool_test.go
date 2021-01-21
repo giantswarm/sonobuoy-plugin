@@ -48,11 +48,21 @@ func Test_AzureMachinePoolCR(t *testing.T) {
 		//
 		// Check Metadata
 		//
+
+		// Check if 'release.giantswarm.io/version' label is set
+		assertLabelIsSet(t, cluster, label.ReleaseVersion)
+
 		// Check that Cluster and AzureMachinePool desired release version matches
 		assertLabelIsEqual(t, cluster, &amp, label.ReleaseVersion)
 
+		// Check if 'azure-operator.giantswarm.io/version' label is set
+		assertLabelIsSet(t, cluster, label.AzureOperatorVersion)
+
 		// Check that Cluster and AzureMachinePool azure-operator version matches
 		assertLabelIsEqual(t, cluster, &amp, label.AzureOperatorVersion)
+
+		// Check if 'giantswarm.io/machine-pool' label is set
+		assertLabelIsSet(t, &amp, label.MachinePool)
 
 		machinePool := getMachinePoolFromMetadata(ctx, t, cpCtrlClient, amp.ObjectMeta)
 

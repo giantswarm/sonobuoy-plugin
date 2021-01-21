@@ -32,6 +32,16 @@ func Test_ClusterCR(t *testing.T) {
 	//
 	// Test metadata
 	//
+
+	// Check if 'release.giantswarm.io/version' label is set
+	assertLabelIsSet(t, cluster, label.ReleaseVersion)
+
+	// Check if 'release.giantswarm.io/last-deployed-version' annotation is set
+	assertAnnotationIsSet(t, cluster, annotation.LastDeployedReleaseVersion)
+
+	// Check if 'azure-operator.giantswarm.io/version' label is set
+	assertLabelIsSet(t, cluster, label.AzureOperatorVersion)
+
 	desiredRelease := cluster.Labels[label.ReleaseVersion]
 	lastDeployedReleaseRelease := cluster.Annotations[annotation.LastDeployedReleaseVersion]
 	if lastDeployedReleaseRelease != desiredRelease {

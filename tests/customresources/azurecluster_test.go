@@ -37,10 +37,16 @@ func Test_AzureClusterCR(t *testing.T) {
 	// Check Metadata
 	//
 
-	// Check that Cluster and MachinePool desired release version matches
+	// Check if 'release.giantswarm.io/version' label is set
+	assertLabelIsSet(t, cluster, label.ReleaseVersion)
+
+	// Check that Cluster and AzureCluster desired release version matches
 	assertLabelIsEqual(t, cluster, azureCluster, label.ReleaseVersion)
 
-	// Check that Cluster and MachinePool azure-operator version matches
+	// Check if 'azure-operator.giantswarm.io/version' label is set
+	assertLabelIsSet(t, cluster, label.AzureOperatorVersion)
+
+	// Check that Cluster and AzureCluster azure-operator version matches
 	assertLabelIsEqual(t, cluster, azureCluster, label.AzureOperatorVersion)
 
 	//

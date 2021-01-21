@@ -45,14 +45,40 @@ func Test_MachinePoolCR(t *testing.T) {
 	for _, machinePool := range machinePools {
 		mp := machinePool
 
-		// Check that Cluster and MachinePool desired release version matches
+		//
+		// Check metadata
+		//
+
+		// Check if 'giantswarm.io/machine-pool' label is set
+		assertLabelIsSet(t, &mp, label.MachinePool)
+
+		// Check if 'release.giantswarm.io/version' label is set
+		assertLabelIsSet(t, &mp, label.ReleaseVersion)
+
+		// Check if Cluster and MachinePool have matching 'release.giantswarm.io/version' labels
 		assertLabelIsEqual(t, cluster, &mp, label.ReleaseVersion)
 
-		// Check that Cluster and MachinePool last deployed release version matches
+		// Check if 'release.giantswarm.io/last-deployed-version' annotation is set
+		assertAnnotationIsSet(t, &mp, annotation.LastDeployedReleaseVersion)
+
+		// Check if Cluster and MachinePool have matching 'release.giantswarm.io/last-deployed-version' annotations
 		assertAnnotationIsEqual(t, cluster, &mp, annotation.LastDeployedReleaseVersion)
 
-		// Check that Cluster and MachinePool azure-operator version matches
+		// Check if 'azure-operator.giantswarm.io/version' label is set
+		assertLabelIsSet(t, &mp, label.AzureOperatorVersion)
+
+		// Check that Cluster and MachinePool have matching 'azure-operator.giantswarm.io/version' labels
 		assertLabelIsEqual(t, cluster, &mp, label.AzureOperatorVersion)
+
+		// Check if 'cluster.k8s.io/cluster-api-autoscaler-node-group-min-size' annotation is set
+		assertAnnotationIsSet(t, &mp, annotation.NodePoolMinSize)
+
+		// Check if 'cluster.k8s.io/cluster-api-autoscaler-node-group-max-size' annotation is set
+		assertAnnotationIsSet(t, &mp, annotation.NodePoolMaxSize)
+
+		//
+		// Check Spec
+		//
 
 		// Check if specified number of replicas is discovered
 		if *mp.Spec.Replicas != mp.Status.Replicas {
