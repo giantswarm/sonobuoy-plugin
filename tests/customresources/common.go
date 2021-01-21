@@ -7,8 +7,8 @@ import (
 
 	"k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	"sigs.k8s.io/cluster-api/api/v1alpha3"
-	"sigs.k8s.io/cluster-api/util/conditions"
+	capi "sigs.k8s.io/cluster-api/api/v1alpha3"
+	capiconditions "sigs.k8s.io/cluster-api/util/conditions"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -49,14 +49,14 @@ func assertAnnotationIsEqual(t *testing.T, referenceObject runtimeObject, otherO
 	}
 }
 
-func getTestedCluster(ctx context.Context, t *testing.T, cpCtrlClient client.Client) *v1alpha3.Cluster {
+func getTestedCluster(ctx context.Context, t *testing.T, cpCtrlClient client.Client) *capi.Cluster {
 	clusterID, exists := os.LookupEnv("CLUSTER_ID")
 	if !exists {
 		t.Fatal("missing CLUSTER_ID environment variable")
 	}
 
-	clusterList := &v1alpha3.ClusterList{}
-	err := cpCtrlClient.List(ctx, clusterList, client.MatchingLabels{v1alpha3.ClusterLabelName: clusterID})
+	clusterList := &capi.ClusterList{}
+	err := cpCtrlClient.List(ctx, clusterList, client.MatchingLabels{capi.ClusterLabelName: clusterID})
 	if err != nil {
 		t.Fatalf("error listing Clusters in CP k8s API: %v", err)
 	}
@@ -69,4 +69,4 @@ func getTestedCluster(ctx context.Context, t *testing.T, cpCtrlClient client.Cli
 	return &cluster
 }
 
-type conditionCheck func(cluster conditions.Getter, conditionType v1alpha3.ConditionType) bool
+type conditionCheck func(cluster capiconditions.Getter, conditionType capi.ConditionType) bool
