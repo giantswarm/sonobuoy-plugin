@@ -1,5 +1,7 @@
 #!/usr/bin/env sh
 
+set -o pipefail
+
 results_dir="${RESULTS_DIR:-/tmp/results}"
 
 # saveResults prepares the results for handoff to the Sonobuoy worker.
