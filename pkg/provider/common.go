@@ -11,11 +11,11 @@ import (
 )
 
 const (
-	Provider = "E2E_PROVIDER"
+	ProviderEnvVarName = "PROVIDER"
 )
 
 func GetProviderSupport(ctx context.Context, client ctrl.Client, cluster *capi.Cluster) (Support, error) {
-	provider := os.Getenv(Provider)
+	provider := os.Getenv(ProviderEnvVarName)
 
 	switch strings.TrimSpace(provider) {
 	case "azure":
@@ -27,5 +27,5 @@ func GetProviderSupport(ctx context.Context, client ctrl.Client, cluster *capi.C
 		return p, nil
 	}
 
-	return nil, microerror.Maskf(executionFailedError, "unsupported provider value in $%s: %q", Provider, provider)
+	return nil, microerror.Maskf(executionFailedError, "unsupported provider value in $%s: %q", ProviderEnvVarName, provider)
 }
