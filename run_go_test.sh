@@ -1,4 +1,6 @@
-#!/usr/bin/env sh
+#!/usr/bin/env bash
+
+set -eo pipefail
 
 results_dir="${RESULTS_DIR:-/tmp/results}"
 
