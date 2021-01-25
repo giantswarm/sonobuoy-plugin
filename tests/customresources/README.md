@@ -46,8 +46,8 @@ Metadata checks:
 Status checks:
 - `Spec.Replicas` equal to `Status.Replicas`
 - `Status.Replicas` equal to `Status.ReadyReplicas`
-- waiting for `Cluster.Status.Conditions[Ready]` to have status `True`
-- waiting for `Cluster.Status.Conditions[Creating]` to have Status `False`
-- waiting for `Cluster.Status.Conditions[Upgrading]` to have Status `False`
+- Waiting for `Cluster.Status.Conditions[Ready]` to have status `True`
+- Waiting for `Cluster.Status.Conditions[Creating]` to have Status `False`
+- Waiting for `Cluster.Status.Conditions[Upgrading]` to have Status `False`
 - `Cluster.Status.Conditions[InfrastructureReady]` have Status `True`
 - `Cluster.Status.Conditions[ReplicasReady]` have Status `True`
