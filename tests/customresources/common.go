@@ -1,15 +1,12 @@
 package customresources
 
 import (
-	"context"
-	"os"
 	"testing"
 
 	"k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	capi "sigs.k8s.io/cluster-api/api/v1alpha3"
 	capiconditions "sigs.k8s.io/cluster-api/util/conditions"
-	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 type runtimeObject interface {
@@ -73,26 +70,6 @@ func assertAnnotationIsEqual(t *testing.T, referenceObject runtimeObject, otherO
 			referenceObjectKind.GroupVersionKind().Kind,
 			otherAnnotation)
 	}
-}
-
-func getTestedCluster(ctx context.Context, t *testing.T, cpCtrlClient client.Client) *capi.Cluster {
-	clusterID, exists := os.LookupEnv("CLUSTER_ID")
-	if !exists {
-		t.Fatal("missing CLUSTER_ID environment variable")
-	}
-
-	clusterList := &capi.ClusterList{}
-	err := cpCtrlClient.List(ctx, clusterList, client.MatchingLabels{capi.ClusterLabelName: clusterID})
-	if err != nil {
-		t.Fatalf("error listing Clusters in CP k8s API: %v", err)
-	}
-
-	if len(clusterList.Items) != 1 {
-		t.Fatalf("found %d clusters with cluster ID %s", len(clusterList.Items), clusterID)
-	}
-
-	cluster := clusterList.Items[0]
-	return &cluster
 }
 
 type conditionCheck func(cluster capiconditions.Getter, conditionType capi.ConditionType) bool

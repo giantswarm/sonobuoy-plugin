@@ -9,11 +9,13 @@ import (
 	"github.com/giantswarm/apiextensions/v3/pkg/annotation"
 	"github.com/giantswarm/apiextensions/v3/pkg/label"
 	"github.com/giantswarm/conditions/pkg/conditions"
+	"github.com/giantswarm/microerror"
 	capi "sigs.k8s.io/cluster-api/api/v1alpha3"
 	capiexp "sigs.k8s.io/cluster-api/exp/api/v1alpha3"
 	capiconditions "sigs.k8s.io/cluster-api/util/conditions"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
+	"github.com/giantswarm/sonobuoy-plugin/v5/pkg/capiutil"
 	"github.com/giantswarm/sonobuoy-plugin/v5/pkg/ctrlclient"
 )
 
@@ -21,12 +23,20 @@ func Test_MachinePoolCR(t *testing.T) {
 	var err error
 	ctx := context.Background()
 
-	cpCtrlClient, err := ctrlclient.CreateCPCtrlClient(ctx)
+	clusterID, exists := os.LookupEnv("CLUSTER_ID")
+	if !exists {
+		t.Fatal("missing CLUSTER_ID environment variable")
+	}
+
+	cpCtrlClient, err := ctrlclient.CreateCPCtrlClient()
 	if err != nil {
 		t.Fatalf("error creating CP k8s client: %v", err)
 	}
 
-	cluster := getTestedCluster(ctx, t, cpCtrlClient)
+	cluster, err := capiutil.FindCluster(ctx, cpCtrlClient, clusterID)
+	if err != nil {
+		t.Fatalf("error finding cluster: %s", microerror.JSON(err))
+	}
 
 	machinePoolGetter := func(machinePool *capiexp.MachinePool) *capiexp.MachinePool {
 		freshMachinePool := capiexp.MachinePool{}
