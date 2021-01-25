@@ -21,10 +21,10 @@ Status checks:
 - `Cluster.Status.ControlPlaneInitialized` is set to `true`
 - `Cluster.Status.ControlPlaneReady` is set to `true`
 - `Cluster.Status.InfrastructureReady` is set to `true`
-- waiting for `Cluster.Status.Conditions[Ready]` to have status `True`
-- waiting for `Cluster.Status.Conditions[Creating]` to have Status `False`
+- Waiting for `Cluster.Status.Conditions[Ready]` to have status `True`
+- Waiting for `Cluster.Status.Conditions[Creating]` to have Status `False`
 - `Cluster.Status.Conditions[Creating]` have Reason `CreationCompleted`
-- waiting for `Cluster.Status.Conditions[Upgrading]` to have Status `False`
+- Waiting for `Cluster.Status.Conditions[Upgrading]` to have Status `False`
 - `Cluster.Status.Conditions[ControlPlaneReady]` have Status `True`
 - `Cluster.Status.Conditions[InfrastructureReady]` have Status `True`
 - `Cluster.Status.Conditions[NodePoolsReady]` have Status `True`
