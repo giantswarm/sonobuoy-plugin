@@ -11,11 +11,13 @@ import (
 	"k8s.io/apimachinery/pkg/api/errors"
 	capz "sigs.k8s.io/cluster-api-provider-azure/api/v1alpha3"
 	capi "sigs.k8s.io/cluster-api/api/v1alpha3"
-	"sigs.k8s.io/controller-runtime/pkg/client"
+	ctrl "sigs.k8s.io/controller-runtime/pkg/client"
 
-	azureclient "github.com/giantswarm/sonobuoy-plugin/v5/pkg/azure/client"
+	"github.com/giantswarm/sonobuoy-plugin/v5/pkg/azure"
 	"github.com/giantswarm/sonobuoy-plugin/v5/pkg/azure/credentials"
+	"github.com/giantswarm/sonobuoy-plugin/v5/pkg/capiutil"
 	"github.com/giantswarm/sonobuoy-plugin/v5/pkg/ctrlclient"
+	"github.com/giantswarm/sonobuoy-plugin/v5/pkg/provider"
 )
 
 func Test_AzureDelete(t *testing.T) {
@@ -28,17 +30,17 @@ func Test_AzureDelete(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	provider, exists := os.LookupEnv("PROVIDER")
+	providerName, exists := os.LookupEnv(provider.ProviderEnvVarName)
 	if !exists {
-		t.Fatal("missing PROVIDER environment variable")
+		t.Fatalf("missing %s environment variable", provider.ProviderEnvVarName)
 	}
 
-	if provider != "azure" {
+	if providerName != "azure" {
 		logger.Debugf(ctx, "Only Azure provider is supported by this test, skipping")
 		return
 	}
 
-	cpCtrlClient, err := ctrlclient.CreateCPCtrlClient(ctx)
+	cpCtrlClient, err := ctrlclient.CreateCPCtrlClient()
 	if err != nil {
 		t.Fatalf("error creating CP k8s client: %v", err)
 	}
@@ -48,12 +50,17 @@ func Test_AzureDelete(t *testing.T) {
 		t.Fatal("missing CLUSTER_ID environment variable")
 	}
 
-	servicePrincipal, err := credentials.FromSecret(ctx, cpCtrlClient, clusterID)
+	cluster, err := capiutil.FindCluster(ctx, cpCtrlClient, clusterID)
+	if err != nil {
+		t.Fatal(microerror.JSON(err))
+	}
+
+	servicePrincipal, err := credentials.ForCluster(ctx, cpCtrlClient, cluster)
 	if err != nil {
 		t.Fatalf("can't get service principal credentials: %v", err)
 	}
 
-	azureClient, err := azureclient.NewClient(azureclient.Config{ServicePrincipal: servicePrincipal})
+	azureClient, err := azure.NewClient(azure.ClientConfig{ServicePrincipal: servicePrincipal})
 	if err != nil {
 		t.Fatalf("error creating azure client: %v", err)
 	}
@@ -61,7 +68,7 @@ func Test_AzureDelete(t *testing.T) {
 	logger.Debugf(ctx, "Checking if resource group exists.")
 
 	// Check the resourge group exists.
-	exists, err = azureClient.ResourceGroupExists(ctx, clusterID)
+	exists, err = azureClient.ResourceGroup.Exists(ctx, clusterID)
 	if err != nil {
 		t.Fatalf("Unable to check if the cluster's resource group exists: %v", err)
 	}
@@ -84,7 +91,7 @@ func Test_AzureDelete(t *testing.T) {
 		logger.Debugf(ctx, "Waiting for cluster CR for cluster %s to be deleted", clusterID)
 		o := func() error {
 			clusters := &capi.ClusterList{}
-			err := cpCtrlClient.List(ctx, clusters, client.MatchingLabels{capi.ClusterLabelName: clusterID})
+			err := cpCtrlClient.List(ctx, clusters, ctrl.MatchingLabels{capi.ClusterLabelName: clusterID})
 			if err != nil {
 				return microerror.Mask(err)
 			}
@@ -109,7 +116,7 @@ func Test_AzureDelete(t *testing.T) {
 		logger.Debugf(ctx, "Waiting for resource group %s to be deleted", clusterID)
 
 		o := func() error {
-			exists, err := azureClient.ResourceGroupExists(ctx, clusterID)
+			exists, err := azureClient.ResourceGroup.Exists(ctx, clusterID)
 			if err != nil {
 				return microerror.Maskf(executionFailedError, "Error checking if the resource group exists: %v", err)
 			}
@@ -129,21 +136,21 @@ func Test_AzureDelete(t *testing.T) {
 	}
 }
 
-func deleteCluster(ctx context.Context, ctrlClient client.Client, logger micrologger.Logger, clusterID string) error {
-	labelSelector := client.MatchingLabels{}
+func deleteCluster(ctx context.Context, client ctrl.Client, logger micrologger.Logger, clusterID string) error {
+	labelSelector := ctrl.MatchingLabels{}
 	labelSelector[capi.ClusterLabelName] = clusterID
 
-	crNamespace, err := getClusterNamespace(ctx, ctrlClient, labelSelector)
+	crNamespace, err := getClusterNamespace(ctx, client, labelSelector)
 	if IsNotFound(err) {
 		// fall through
 	} else if err != nil {
 		return microerror.Mask(err)
 	}
-	namespace := client.InNamespace(crNamespace)
+	namespace := ctrl.InNamespace(crNamespace)
 
 	// delete provider-independent cluster CRs
 	{
-		err = ctrlClient.DeleteAllOf(ctx, &capi.Cluster{}, labelSelector, namespace)
+		err = client.DeleteAllOf(ctx, &capi.Cluster{}, labelSelector, namespace)
 		if errors.IsNotFound(err) {
 			// fall through
 		} else if err != nil {
@@ -151,11 +158,11 @@ func deleteCluster(ctx context.Context, ctrlClient client.Client, logger microlo
 		}
 	}
 
-	inNamespace := client.InNamespace(crNamespace)
+	inNamespace := ctrl.InNamespace(crNamespace)
 
 	// delete AzureCluster CR
 	{
-		err = ctrlClient.DeleteAllOf(ctx, &capz.AzureCluster{}, labelSelector, inNamespace)
+		err = client.DeleteAllOf(ctx, &capz.AzureCluster{}, labelSelector, inNamespace)
 		if errors.IsNotFound(err) {
 			logger.Debugf(ctx, "AzureCluster CR not found for cluster ID %q", clusterID)
 		} else if err != nil {
@@ -166,12 +173,12 @@ func deleteCluster(ctx context.Context, ctrlClient client.Client, logger microlo
 	return nil
 }
 
-func getClusterNamespace(ctx context.Context, ctrlClient client.Client, labelSelector client.MatchingLabels) (string, error) {
+func getClusterNamespace(ctx context.Context, client ctrl.Client, labelSelector ctrl.MatchingLabels) (string, error) {
 	var cr capi.Cluster
 	{
 		crs := &capi.ClusterList{}
 
-		err := ctrlClient.List(ctx, crs, labelSelector)
+		err := client.List(ctx, crs, labelSelector)
 		if err != nil {
 			return "", microerror.Mask(err)
 		}

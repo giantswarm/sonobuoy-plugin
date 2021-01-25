@@ -7,7 +7,7 @@ import (
 	"github.com/giantswarm/microerror"
 	corev1 "k8s.io/api/core/v1"
 	capi "sigs.k8s.io/cluster-api/api/v1alpha3"
-	"sigs.k8s.io/controller-runtime/pkg/client"
+	ctrl "sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 type ServicePrincipal struct {
@@ -17,12 +17,7 @@ type ServicePrincipal struct {
 	SubscriptionID string
 }
 
-func FromSecret(ctx context.Context, ctrlClient client.Client, clusterID string) (*ServicePrincipal, error) {
-	// Find the cluster CR.
-	cluster, err := findClusterCR(ctx, ctrlClient, clusterID)
-	if err != nil {
-		return nil, microerror.Mask(err)
-	}
+func ForCluster(ctx context.Context, client ctrl.Client, cluster *capi.Cluster) (*ServicePrincipal, error) {
 	// Extract the organization name.
 	var orgName string
 	{
@@ -33,7 +28,7 @@ func FromSecret(ctx context.Context, ctrlClient client.Client, clusterID string)
 	}
 
 	// Find the secret holding organization's credentials.
-	secret, err := findSecret(ctx, ctrlClient, orgName)
+	secret, err := findSecret(ctx, client, orgName)
 	if err != nil {
 		return nil, microerror.Mask(err)
 	}
@@ -49,25 +44,11 @@ func FromSecret(ctx context.Context, ctrlClient client.Client, clusterID string)
 	return &sp, nil
 }
 
-func findClusterCR(ctx context.Context, ctrlClient client.Client, clusterID string) (*capi.Cluster, error) {
-	clusterList := &capi.ClusterList{}
-	err := ctrlClient.List(ctx, clusterList, client.MatchingLabels{capi.ClusterLabelName: clusterID})
-	if err != nil {
-		return nil, microerror.Mask(err)
-	}
-
-	if len(clusterList.Items) != 1 {
-		return nil, microerror.Maskf(executionFailedError, "Unable to find ClusterCR with label %q = %q. Expected 1 result, %d found.", capi.ClusterLabelName, clusterID, len(clusterList.Items))
-	}
-
-	return &clusterList.Items[0], nil
-}
-
-func findSecret(ctx context.Context, ctrlClient client.Client, orgName string) (*corev1.Secret, error) {
-	// Look for a secret with labels "app: credentiald" and "giantswarm.io/organization: <normalized org name>"
+func findSecret(ctx context.Context, client ctrl.Client, orgName string) (*corev1.Secret, error) {
+	// Look for a secret with labels "app: credentiald" and "giantswarm.io/organization: org"
 	secrets := &corev1.SecretList{}
 
-	err := ctrlClient.List(ctx, secrets, client.MatchingLabels{"app": "credentiald", label.Organization: asDNSLabelName(orgName)})
+	err := client.List(ctx, secrets, ctrl.MatchingLabels{"app": "credentiald", label.Organization: orgName})
 	if err != nil {
 		return nil, microerror.Mask(err)
 	}
@@ -78,7 +59,7 @@ func findSecret(ctx context.Context, ctrlClient client.Client, orgName string) (
 		secret := &corev1.Secret{}
 
 		// Organization-specific secret not found, use secret named "credential-default".
-		err := ctrlClient.Get(ctx, client.ObjectKey{Namespace: "giantswarm", Name: "credential-default"}, secret)
+		err := client.Get(ctx, ctrl.ObjectKey{Namespace: "giantswarm", Name: "credential-default"}, secret)
 		if err != nil {
 			return nil, microerror.Mask(err)
 		}

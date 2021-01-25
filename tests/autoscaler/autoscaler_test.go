@@ -9,6 +9,7 @@ import (
 	"github.com/giantswarm/backoff"
 	"github.com/giantswarm/microerror"
 	appsv1 "k8s.io/api/apps/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"github.com/giantswarm/micrologger"
@@ -28,7 +29,7 @@ func Test_Autoscaler(t *testing.T) {
 
 	ctx := context.Background()
 
-	tcCtrlClient, err := ctrlclient.CreateTCCtrlClient(ctx)
+	tcCtrlClient, err := ctrlclient.CreateTCCtrlClient()
 	if err != nil {
 		t.Fatalf("error creating TC k8s client: %v", err)
 	}
@@ -115,15 +116,29 @@ func getWorkersCount(ctx context.Context, ctrlClient client.Client) (int, error)
 }
 
 func scaleDeployment(ctx context.Context, ctrlClient client.Client, expectedWorkersCount int32) error {
-	deployment := &appsv1.Deployment{}
-	err := ctrlClient.Get(ctx, client.ObjectKey{Namespace: helloWorldNamespace, Name: helloWorldDeploymentName}, deployment)
-	if err != nil {
-		return microerror.Mask(err)
+	o := func() error {
+		deployment := &appsv1.Deployment{}
+		err := ctrlClient.Get(ctx, client.ObjectKey{Namespace: helloWorldNamespace, Name: helloWorldDeploymentName}, deployment)
+		if err != nil {
+			return microerror.Mask(err)
+		}
+
+		deployment.Spec.Replicas = &expectedWorkersCount
+
+		err = ctrlClient.Update(ctx, deployment)
+		if apierrors.IsConflict(err) {
+			// Retriable error.
+			return microerror.Mask(err)
+		} else if err != nil {
+			// Wrap masked error with backoff.Permanent() to stop retries on unrecoverable error.
+			return backoff.Permanent(microerror.Mask(err))
+		}
+
+		return nil
 	}
 
-	deployment.Spec.Replicas = &expectedWorkersCount
-
-	err = ctrlClient.Update(ctx, deployment)
+	b := backoff.NewConstant(backoff.ShortMaxWait, backoff.ShortMaxInterval)
+	err := backoff.Retry(o, b)
 	if err != nil {
 		return microerror.Mask(err)
 	}
