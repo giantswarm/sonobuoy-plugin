@@ -4,16 +4,13 @@ import (
 	"context"
 	"os"
 	"testing"
-	"time"
 
 	"github.com/giantswarm/apiextensions/v3/pkg/annotation"
 	"github.com/giantswarm/apiextensions/v3/pkg/label"
 	"github.com/giantswarm/conditions/pkg/conditions"
 	"github.com/giantswarm/microerror"
 	capi "sigs.k8s.io/cluster-api/api/v1alpha3"
-	capiexp "sigs.k8s.io/cluster-api/exp/api/v1alpha3"
 	capiconditions "sigs.k8s.io/cluster-api/util/conditions"
-	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	"github.com/giantswarm/sonobuoy-plugin/v5/pkg/capiutil"
 	"github.com/giantswarm/sonobuoy-plugin/v5/pkg/ctrlclient"
@@ -38,25 +35,25 @@ func Test_MachinePoolCR(t *testing.T) {
 		t.Fatalf("error finding cluster: %s", microerror.JSON(err))
 	}
 
-	machinePoolGetter := func(machinePool *capiexp.MachinePool) *capiexp.MachinePool {
-		freshMachinePool := capiexp.MachinePool{}
-		machinePoolKey := client.ObjectKey{Namespace: machinePool.Namespace, Name: machinePool.Name}
-
-		err := cpCtrlClient.Get(ctx, machinePoolKey, &freshMachinePool)
+	machinePoolGetter := func(machinePoolID string) capiutil.TestedObject {
+		machinePool, err := capiutil.FindMachinePool(ctx, cpCtrlClient, machinePoolID)
 		if err != nil {
-			t.Fatalf("error getting MachinePool %s", machinePoolKey.String())
+			t.Fatalf("error finding MachinePool %s: %s", machinePoolID, microerror.JSON(err))
 		}
 
-		return &freshMachinePool
+		return machinePool
 	}
 
-	machinePools := getTestedMachinePools(ctx, t, cpCtrlClient)
+	machinePools, err := capiutil.FindMachinePoolsForCluster(ctx, cpCtrlClient, clusterID)
+	if err != nil {
+		t.Fatalf("error finding MachinePools for cluster %q: %s", clusterID, microerror.JSON(err))
+	}
 
 	for _, machinePool := range machinePools {
 		mp := machinePool
 
 		//
-		// Check metadata
+		// Check basic metadata
 		//
 
 		// Check if 'giantswarm.io/machine-pool' label is set
@@ -64,6 +61,35 @@ func Test_MachinePoolCR(t *testing.T) {
 
 		// Check if 'release.giantswarm.io/version' label is set
 		assertLabelIsSet(t, &mp, label.ReleaseVersion)
+
+		// Check if 'azure-operator.giantswarm.io/version' label is set
+		assertLabelIsSet(t, &mp, label.AzureOperatorVersion)
+
+		// Check if 'cluster.k8s.io/cluster-api-autoscaler-node-group-min-size' annotation is set
+		assertAnnotationIsSet(t, &mp, annotation.NodePoolMinSize)
+
+		// Check if 'cluster.k8s.io/cluster-api-autoscaler-node-group-max-size' annotation is set
+		assertAnnotationIsSet(t, &mp, annotation.NodePoolMaxSize)
+
+		//
+		// Wait for main conditions checking the remaining parts of the resource:
+		//   Ready     == True
+		//   Creating  == False
+		//   Upgrading == False
+		//
+
+		// Wait for Ready condition to be True
+		capiutil.WaitForCondition(t, &mp, capi.ReadyCondition, capiconditions.IsTrue, machinePoolGetter)
+
+		// Wait for Creating condition to be False
+		capiutil.WaitForCondition(t, &mp, conditions.Creating, capiconditions.IsFalse, machinePoolGetter)
+
+		// Wait for Upgrading condition to be False
+		capiutil.WaitForCondition(t, &mp, conditions.Upgrading, capiconditions.IsFalse, machinePoolGetter)
+
+		//
+		// Continue checking metadata
+		//
 
 		// Check if Cluster and MachinePool have matching 'release.giantswarm.io/version' labels
 		assertLabelIsEqual(t, cluster, &mp, label.ReleaseVersion)
@@ -74,20 +100,11 @@ func Test_MachinePoolCR(t *testing.T) {
 		// Check if Cluster and MachinePool have matching 'release.giantswarm.io/last-deployed-version' annotations
 		assertAnnotationIsEqual(t, cluster, &mp, annotation.LastDeployedReleaseVersion)
 
-		// Check if 'azure-operator.giantswarm.io/version' label is set
-		assertLabelIsSet(t, &mp, label.AzureOperatorVersion)
-
 		// Check that Cluster and MachinePool have matching 'azure-operator.giantswarm.io/version' labels
 		assertLabelIsEqual(t, cluster, &mp, label.AzureOperatorVersion)
 
-		// Check if 'cluster.k8s.io/cluster-api-autoscaler-node-group-min-size' annotation is set
-		assertAnnotationIsSet(t, &mp, annotation.NodePoolMinSize)
-
-		// Check if 'cluster.k8s.io/cluster-api-autoscaler-node-group-max-size' annotation is set
-		assertAnnotationIsSet(t, &mp, annotation.NodePoolMaxSize)
-
 		//
-		// Check Spec
+		// Check Spec & Status
 		//
 
 		// Check if specified number of replicas is discovered
@@ -100,15 +117,6 @@ func Test_MachinePoolCR(t *testing.T) {
 			t.Fatalf("%d replicas found, but %d are ready", mp.Status.Replicas, mp.Status.AvailableReplicas)
 		}
 
-		// Wait for Ready condition to be True
-		waitForMachinePoolCondition(&mp, capi.ReadyCondition, capiconditions.IsTrue, machinePoolGetter)
-
-		// Wait for Creating condition to be False
-		waitForMachinePoolCondition(&mp, conditions.Creating, capiconditions.IsFalse, machinePoolGetter)
-
-		// Wait for Upgrading condition to be False
-		waitForMachinePoolCondition(&mp, conditions.Upgrading, capiconditions.IsFalse, machinePoolGetter)
-
 		// Verify that InfrastructureReady condition is True
 		if !conditions.IsInfrastructureReadyTrue(&mp) {
 			t.Fatalf("MachinePool InfrastructureReady condition is not True")
@@ -119,31 +127,4 @@ func Test_MachinePoolCR(t *testing.T) {
 			t.Fatalf("MachinePool ReplicasReady condition is not True")
 		}
 	}
-}
-
-func waitForMachinePoolCondition(machinePool *capiexp.MachinePool, conditionType capi.ConditionType, check conditionCheck, machinePoolGetter machinePoolGetterFunc) {
-	checkResult := check(machinePool, conditionType)
-
-	for ; checkResult != true; checkResult = check(machinePool, conditionType) {
-		time.Sleep(1 * time.Minute)
-		refreshedMachinePoolCR := machinePoolGetter(machinePool)
-		*machinePool = *refreshedMachinePoolCR
-	}
-}
-
-type machinePoolGetterFunc func(machinePool *capiexp.MachinePool) *capiexp.MachinePool
-
-func getTestedMachinePools(ctx context.Context, t *testing.T, cpCtrlClient client.Client) []capiexp.MachinePool {
-	clusterID, exists := os.LookupEnv("CLUSTER_ID")
-	if !exists {
-		t.Fatal("missing CLUSTER_ID environment variable")
-	}
-
-	machinePoolList := &capiexp.MachinePoolList{}
-	err := cpCtrlClient.List(ctx, machinePoolList, client.MatchingLabels{capi.ClusterLabelName: clusterID})
-	if err != nil {
-		t.Fatalf("error listing Clusters in CP k8s API: %v", err)
-	}
-
-	return machinePoolList.Items
 }

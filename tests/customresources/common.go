@@ -3,18 +3,10 @@ package customresources
 import (
 	"testing"
 
-	"k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime"
-	capi "sigs.k8s.io/cluster-api/api/v1alpha3"
-	capiconditions "sigs.k8s.io/cluster-api/util/conditions"
+	"github.com/giantswarm/sonobuoy-plugin/v5/pkg/capiutil"
 )
 
-type runtimeObject interface {
-	v1.Object
-	runtime.Object
-}
-
-func assertLabelIsSet(t *testing.T, object runtimeObject, label string) {
+func assertLabelIsSet(t *testing.T, object capiutil.TestedObject, label string) {
 	_, isAnnotationSet := object.GetLabels()[label]
 	if !isAnnotationSet {
 		t.Fatalf("%s '%s/%s': expected that label %q is set",
@@ -25,7 +17,7 @@ func assertLabelIsSet(t *testing.T, object runtimeObject, label string) {
 	}
 }
 
-func assertAnnotationIsSet(t *testing.T, object runtimeObject, annotation string) {
+func assertAnnotationIsSet(t *testing.T, object capiutil.TestedObject, annotation string) {
 	_, isAnnotationSet := object.GetAnnotations()[annotation]
 	if !isAnnotationSet {
 		t.Fatalf("%s '%s/%s': expected that annotation %q is set",
@@ -36,7 +28,7 @@ func assertAnnotationIsSet(t *testing.T, object runtimeObject, annotation string
 	}
 }
 
-func assertLabelIsEqual(t *testing.T, referenceObject runtimeObject, otherObject runtimeObject, label string) {
+func assertLabelIsEqual(t *testing.T, referenceObject capiutil.TestedObject, otherObject capiutil.TestedObject, label string) {
 	referenceLabel := referenceObject.GetLabels()[label]
 	otherLabel := otherObject.GetLabels()[label]
 	referenceObjectKind := referenceObject.GetObjectKind()
@@ -54,7 +46,7 @@ func assertLabelIsEqual(t *testing.T, referenceObject runtimeObject, otherObject
 	}
 }
 
-func assertAnnotationIsEqual(t *testing.T, referenceObject runtimeObject, otherObject runtimeObject, annotation string) {
+func assertAnnotationIsEqual(t *testing.T, referenceObject capiutil.TestedObject, otherObject capiutil.TestedObject, annotation string) {
 	referenceAnnotation := referenceObject.GetAnnotations()[annotation]
 	otherAnnotation := otherObject.GetAnnotations()[annotation]
 	referenceObjectKind := referenceObject.GetObjectKind()
@@ -71,5 +63,3 @@ func assertAnnotationIsEqual(t *testing.T, referenceObject runtimeObject, otherO
 			otherAnnotation)
 	}
 }
-
-type conditionCheck func(cluster capiconditions.Getter, conditionType capi.ConditionType) bool

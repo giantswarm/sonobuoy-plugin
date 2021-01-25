@@ -4,7 +4,6 @@ import (
 	"context"
 	"os"
 	"testing"
-	"time"
 
 	"github.com/giantswarm/apiextensions/v3/pkg/annotation"
 	"github.com/giantswarm/apiextensions/v3/pkg/label"
@@ -31,8 +30,8 @@ func Test_ClusterCR(t *testing.T) {
 		t.Fatalf("error creating CP k8s client: %v", err)
 	}
 
-	clusterGetter := func() *capi.Cluster {
-		cluster, err := capiutil.FindCluster(ctx, cpCtrlClient, clusterID)
+	clusterGetter := func(clusterName string) capiutil.TestedObject {
+		cluster, err := capiutil.FindCluster(ctx, cpCtrlClient, clusterName)
 		if err != nil {
 			t.Fatalf("error finding cluster: %s", microerror.JSON(err))
 		}
@@ -40,7 +39,7 @@ func Test_ClusterCR(t *testing.T) {
 		return cluster
 	}
 
-	cluster := clusterGetter()
+	cluster := clusterGetter(clusterID).(*capi.Cluster)
 
 	//
 	// Test metadata
@@ -54,6 +53,22 @@ func Test_ClusterCR(t *testing.T) {
 
 	// Check if 'azure-operator.giantswarm.io/version' label is set
 	assertLabelIsSet(t, cluster, label.AzureOperatorVersion)
+
+	//
+	// Wait for main conditions checking the remaining parts of the resource:
+	//   Ready     == True
+	//   Creating  == False
+	//   Upgrading == False
+	//
+
+	// Wait for Ready condition to be True
+	capiutil.WaitForCondition(t, cluster, capi.ReadyCondition, capiconditions.IsTrue, clusterGetter)
+
+	// Wait for Creating condition to be False
+	capiutil.WaitForCondition(t, cluster, conditions.Creating, capiconditions.IsFalse, clusterGetter)
+
+	// Wait for Upgrading condition to be False
+	capiutil.WaitForCondition(t, cluster, conditions.Upgrading, capiconditions.IsFalse, clusterGetter)
 
 	desiredRelease := cluster.Labels[label.ReleaseVersion]
 	lastDeployedReleaseRelease := cluster.Annotations[annotation.LastDeployedReleaseVersion]
@@ -79,15 +94,6 @@ func Test_ClusterCR(t *testing.T) {
 		t.Fatalf("infrastructure is not ready")
 	}
 
-	// Wait for Ready condition to be True
-	waitForClusterCondition(cluster, capi.ReadyCondition, capiconditions.IsTrue, clusterGetter)
-
-	// Wait for Creating condition to be False
-	waitForClusterCondition(cluster, conditions.Creating, capiconditions.IsFalse, clusterGetter)
-
-	// Wait for Upgrading condition to be False
-	waitForClusterCondition(cluster, conditions.Upgrading, capiconditions.IsFalse, clusterGetter)
-
 	// Verify that Creating condition has Reason=CreationCompleted
 	if !conditions.IsCreatingFalse(cluster, conditions.WithCreationCompletedReason()) {
 		creatingCondition, _ := conditions.GetCreating(cluster)
@@ -111,15 +117,3 @@ func Test_ClusterCR(t *testing.T) {
 		t.Fatalf("Cluster NodePoolsReady condition is not True")
 	}
 }
-
-func waitForClusterCondition(cluster *capi.Cluster, conditionType capi.ConditionType, check conditionCheck, clusterGetterFunc clusterGetterFunc) {
-	checkResult := check(cluster, conditionType)
-
-	for ; checkResult != true; checkResult = check(cluster, conditionType) {
-		time.Sleep(1 * time.Minute)
-		updatedClusterCR := clusterGetterFunc()
-		*cluster = *updatedClusterCR
-	}
-}
-
-type clusterGetterFunc func() *capi.Cluster

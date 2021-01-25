@@ -4,17 +4,12 @@ import (
 	"context"
 	"os"
 	"testing"
-	"time"
 
 	"github.com/giantswarm/apiextensions/v3/pkg/label"
 	"github.com/giantswarm/microerror"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	capz "sigs.k8s.io/cluster-api-provider-azure/api/v1alpha3"
-	capzexp "sigs.k8s.io/cluster-api-provider-azure/exp/api/v1alpha3"
 	capi "sigs.k8s.io/cluster-api/api/v1alpha3"
-	capiexp "sigs.k8s.io/cluster-api/exp/api/v1alpha3"
 	capiconditions "sigs.k8s.io/cluster-api/util/conditions"
-	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	"github.com/giantswarm/sonobuoy-plugin/v5/pkg/capiutil"
 	"github.com/giantswarm/sonobuoy-plugin/v5/pkg/ctrlclient"
@@ -39,18 +34,18 @@ func Test_AzureMachinePoolCR(t *testing.T) {
 		t.Fatalf("error finding cluster: %s", microerror.JSON(err))
 	}
 
-	azureMachinePools := getTestedAzureMachinePools(ctx, t, cpCtrlClient)
+	azureMachinePools, err := capiutil.FindAzureMachinePoolsForCluster(ctx, cpCtrlClient, clusterID)
+	if err != nil {
+		t.Fatalf("error finding MachinePools for cluster %q: %s", clusterID, microerror.JSON(err))
+	}
 
-	azureMachinePoolGetter := func(azureMachinePool *capzexp.AzureMachinePool) *capzexp.AzureMachinePool {
-		freshAzureMachinePool := capzexp.AzureMachinePool{}
-		azureMachinePoolKey := client.ObjectKey{Namespace: azureMachinePool.Namespace, Name: azureMachinePool.Name}
-
-		err := cpCtrlClient.Get(ctx, azureMachinePoolKey, &freshAzureMachinePool)
+	azureMachinePoolGetter := func(azureMachinePoolID string) capiutil.TestedObject {
+		machinePool, err := capiutil.FindAzureMachinePool(ctx, cpCtrlClient, azureMachinePoolID)
 		if err != nil {
-			t.Fatalf("error getting AzureMachinePool %s", azureMachinePoolKey.String())
+			t.Fatalf("error finding AzureMachinePool %s: %s", azureMachinePoolID, microerror.JSON(err))
 		}
 
-		return &freshAzureMachinePool
+		return machinePool
 	}
 
 	for _, azureMachinePool := range azureMachinePools {
@@ -60,22 +55,31 @@ func Test_AzureMachinePoolCR(t *testing.T) {
 		// Check Metadata
 		//
 
+		// Check if 'giantswarm.io/machine-pool' label is set
+		assertLabelIsSet(t, &amp, label.MachinePool)
+
 		// Check if 'release.giantswarm.io/version' label is set
 		assertLabelIsSet(t, cluster, label.ReleaseVersion)
-
-		// Check that Cluster and AzureMachinePool desired release version matches
-		assertLabelIsEqual(t, cluster, &amp, label.ReleaseVersion)
 
 		// Check if 'azure-operator.giantswarm.io/version' label is set
 		assertLabelIsSet(t, cluster, label.AzureOperatorVersion)
 
+		//
+		// Wait for main conditions checking the remaining parts of the resource:
+		//   Ready == True
+		//
+		capiutil.WaitForCondition(t, &amp, capi.ReadyCondition, capiconditions.IsTrue, azureMachinePoolGetter)
+
+		// Check that Cluster and AzureMachinePool desired release version matches
+		assertLabelIsEqual(t, cluster, &amp, label.ReleaseVersion)
+
 		// Check that Cluster and AzureMachinePool azure-operator version matches
 		assertLabelIsEqual(t, cluster, &amp, label.AzureOperatorVersion)
 
-		// Check if 'giantswarm.io/machine-pool' label is set
-		assertLabelIsSet(t, &amp, label.MachinePool)
-
-		machinePool := getMachinePoolFromMetadata(ctx, t, cpCtrlClient, amp.ObjectMeta)
+		machinePool, err := capiutil.FindMachinePool(ctx, cpCtrlClient, amp.Name)
+		if err != nil {
+			t.Fatalf("error finding MachinePool %s: %s", amp.Name, microerror.JSON(err))
+		}
 
 		// Check that MachinePool and AzureMachinePool giantswarm.io/machine-pool label matches
 		assertLabelIsEqual(t, machinePool, &amp, label.MachinePool)
@@ -119,56 +123,11 @@ func Test_AzureMachinePoolCR(t *testing.T) {
 				*amp.Status.ProvisioningState)
 		}
 
-		// Wait for Ready condition to be True
-		waitForAzureMachinePoolCondition(&amp, capi.ReadyCondition, capiconditions.IsTrue, azureMachinePoolGetter)
-
 		if !amp.Status.Ready {
 			t.Fatalf("AzureMachinePool %s/%s is not ready, Status.Ready == %t",
 				amp.Namespace,
 				amp.Name,
 				amp.Status.Ready)
 		}
-	}
-}
-
-func getTestedAzureMachinePools(ctx context.Context, t *testing.T, cpCtrlClient client.Client) []capzexp.AzureMachinePool {
-	clusterID, exists := os.LookupEnv("CLUSTER_ID")
-	if !exists {
-		t.Fatal("missing CLUSTER_ID environment variable")
-	}
-
-	azureMachinePoolList := &capzexp.AzureMachinePoolList{}
-	err := cpCtrlClient.List(ctx, azureMachinePoolList, client.MatchingLabels{capi.ClusterLabelName: clusterID})
-	if err != nil {
-		t.Fatalf("error listing AzureMachinePools in CP k8s API: %v", err)
-	}
-
-	return azureMachinePoolList.Items
-}
-
-func getMachinePoolFromMetadata(ctx context.Context, t *testing.T, cpCtrlClient client.Client, metadata metav1.ObjectMeta) *capiexp.MachinePool {
-	machinePool := capiexp.MachinePool{}
-	machinePoolKey := client.ObjectKey{
-		Namespace: metadata.Namespace,
-		Name:      metadata.Name,
-	}
-
-	err := cpCtrlClient.Get(ctx, machinePoolKey, &machinePool)
-	if err != nil {
-		t.Fatalf("error getting MachinePool %s in CP k8s API: %v", machinePoolKey.String(), err)
-	}
-
-	return &machinePool
-}
-
-type azureMachinePoolGetterFunc func(azureMachinePool *capzexp.AzureMachinePool) *capzexp.AzureMachinePool
-
-func waitForAzureMachinePoolCondition(azureMachinePool *capzexp.AzureMachinePool, conditionType capi.ConditionType, check conditionCheck, azureMachinePoolGetter azureMachinePoolGetterFunc) {
-	checkResult := check(azureMachinePool, conditionType)
-
-	for ; checkResult != true; checkResult = check(azureMachinePool, conditionType) {
-		time.Sleep(1 * time.Minute)
-		refreshedMachinePoolCR := azureMachinePoolGetter(azureMachinePool)
-		*azureMachinePool = *refreshedMachinePoolCR
 	}
 }

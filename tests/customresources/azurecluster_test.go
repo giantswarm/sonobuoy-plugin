@@ -5,7 +5,6 @@ import (
 	"os"
 	"sort"
 	"testing"
-	"time"
 
 	"github.com/giantswarm/apiextensions/v3/pkg/label"
 	"github.com/giantswarm/microerror"
@@ -36,8 +35,8 @@ func Test_AzureClusterCR(t *testing.T) {
 		t.Fatalf("error finding cluster: %s", microerror.JSON(err))
 	}
 
-	azureClusterGetter := func() *capz.AzureCluster {
-		azureCluster, err := capiutil.FindAzureCluster(ctx, cpCtrlClient, clusterID)
+	azureClusterGetter := func(azureClusterName string) capiutil.TestedObject {
+		azureCluster, err := capiutil.FindAzureCluster(ctx, cpCtrlClient, azureClusterName)
 		if err != nil {
 			t.Fatalf("error finding cluster: %s", microerror.JSON(err))
 		}
@@ -45,7 +44,7 @@ func Test_AzureClusterCR(t *testing.T) {
 		return azureCluster
 	}
 
-	azureCluster := azureClusterGetter()
+	azureCluster := azureClusterGetter(clusterID).(*capz.AzureCluster)
 
 	//
 	// Check Metadata
@@ -63,6 +62,9 @@ func Test_AzureClusterCR(t *testing.T) {
 	// Check that Cluster and AzureCluster azure-operator version matches
 	assertLabelIsEqual(t, cluster, azureCluster, label.AzureOperatorVersion)
 
+	// Wait for Ready condition to be True
+	capiutil.WaitForCondition(t, azureCluster, capi.ReadyCondition, capiconditions.IsTrue, azureClusterGetter)
+
 	//
 	// Check Spec
 	//
@@ -79,7 +81,11 @@ func Test_AzureClusterCR(t *testing.T) {
 	}
 
 	// Check subnets, first we get MachinePools, as we need one subnet per node pool
-	machinePools := getTestedMachinePools(ctx, t, cpCtrlClient)
+	machinePools, err := capiutil.FindMachinePoolsForCluster(ctx, cpCtrlClient, clusterID)
+	if err != nil {
+		t.Fatalf("error finding MachinePools for cluster %q: %s", clusterID, microerror.JSON(err))
+	}
+
 	sort.Slice(machinePools, func(i int, j int) bool {
 		return machinePools[i].Name < machinePools[j].Name
 	})
@@ -125,10 +131,6 @@ func Test_AzureClusterCR(t *testing.T) {
 	//
 	// Check Status
 	//
-
-	// Wait for Ready condition to be True
-	waitForAzureClusterCondition(azureCluster, capi.ReadyCondition, capiconditions.IsTrue, azureClusterGetter)
-
 	if !azureCluster.Status.Ready {
 		t.Fatalf("AzureCluster '%s/%s': expected Status.Ready == true, but got Status.Ready == %t",
 			azureCluster.Namespace,
@@ -136,15 +138,3 @@ func Test_AzureClusterCR(t *testing.T) {
 			azureCluster.Status.Ready)
 	}
 }
-
-func waitForAzureClusterCondition(cluster *capz.AzureCluster, conditionType capi.ConditionType, check conditionCheck, azureClusterGetterFunc azureClusterGetterFunc) {
-	checkResult := check(cluster, conditionType)
-
-	for ; checkResult != true; checkResult = check(cluster, conditionType) {
-		time.Sleep(1 * time.Minute)
-		updatedAzureClusterCR := azureClusterGetterFunc()
-		*cluster = *updatedAzureClusterCR
-	}
-}
-
-type azureClusterGetterFunc func() *capz.AzureCluster
