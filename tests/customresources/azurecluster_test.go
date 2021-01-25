@@ -12,7 +12,6 @@ import (
 	capz "sigs.k8s.io/cluster-api-provider-azure/api/v1alpha3"
 	capi "sigs.k8s.io/cluster-api/api/v1alpha3"
 	capiconditions "sigs.k8s.io/cluster-api/util/conditions"
-	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	"github.com/giantswarm/sonobuoy-plugin/v5/pkg/capiutil"
 	"github.com/giantswarm/sonobuoy-plugin/v5/pkg/ctrlclient"
@@ -38,7 +37,12 @@ func Test_AzureClusterCR(t *testing.T) {
 	}
 
 	azureClusterGetter := func() *capz.AzureCluster {
-		return getTestedAzureCluster(ctx, t, cpCtrlClient)
+		azureCluster, err := capiutil.FindAzureCluster(ctx, cpCtrlClient, clusterID)
+		if err != nil {
+			t.Fatalf("error finding cluster: %s", microerror.JSON(err))
+		}
+
+		return azureCluster
 	}
 
 	azureCluster := azureClusterGetter()
@@ -131,26 +135,6 @@ func Test_AzureClusterCR(t *testing.T) {
 			azureCluster.Name,
 			azureCluster.Status.Ready)
 	}
-}
-
-func getTestedAzureCluster(ctx context.Context, t *testing.T, cpCtrlClient client.Client) *capz.AzureCluster {
-	clusterID, exists := os.LookupEnv("CLUSTER_ID")
-	if !exists {
-		t.Fatal("missing CLUSTER_ID environment variable")
-	}
-
-	azureClusterList := &capz.AzureClusterList{}
-	err := cpCtrlClient.List(ctx, azureClusterList, client.MatchingLabels{capi.ClusterLabelName: clusterID})
-	if err != nil {
-		t.Fatalf("error listing AzureClusters in CP k8s API: %v", err)
-	}
-
-	if len(azureClusterList.Items) != 1 {
-		t.Fatalf("found %d AzureClusters with cluster ID %s", len(azureClusterList.Items), clusterID)
-	}
-
-	azureCluster := azureClusterList.Items[0]
-	return &azureCluster
 }
 
 func waitForAzureClusterCondition(cluster *capz.AzureCluster, conditionType capi.ConditionType, check conditionCheck, azureClusterGetterFunc azureClusterGetterFunc) {

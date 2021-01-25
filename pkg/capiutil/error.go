@@ -10,3 +10,12 @@ var notFoundError = &microerror.Error{
 func IsNotFound(err error) bool {
 	return microerror.Cause(err) == notFoundError
 }
+
+var tooManyObjectsError = &microerror.Error{
+	Kind: "tooManyObjects",
+}
+
+// IsTooManyObjectsError asserts tooManyObjectsError.
+func IsTooManyObjectsError(err error) bool {
+	return microerror.Cause(err) == tooManyObjectsError
+}
