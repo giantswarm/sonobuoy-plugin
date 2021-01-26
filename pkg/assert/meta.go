@@ -2,11 +2,9 @@ package assert
 
 import (
 	"testing"
-
-	"github.com/giantswarm/sonobuoy-plugin/v5/pkg/capiutil"
 )
 
-func LabelIsSet(t *testing.T, object capiutil.TestedObject, label string) {
+func LabelIsSet(t *testing.T, object TestedObject, label string) {
 	_, isAnnotationSet := object.GetLabels()[label]
 	if !isAnnotationSet {
 		t.Fatalf("%s '%s/%s': expected that label %q is set",
@@ -17,7 +15,7 @@ func LabelIsSet(t *testing.T, object capiutil.TestedObject, label string) {
 	}
 }
 
-func AnnotationIsSet(t *testing.T, object capiutil.TestedObject, annotation string) {
+func AnnotationIsSet(t *testing.T, object TestedObject, annotation string) {
 	_, isAnnotationSet := object.GetAnnotations()[annotation]
 	if !isAnnotationSet {
 		t.Fatalf("%s '%s/%s': expected that annotation %q is set",
@@ -28,7 +26,7 @@ func AnnotationIsSet(t *testing.T, object capiutil.TestedObject, annotation stri
 	}
 }
 
-func LabelIsEqual(t *testing.T, referenceObject capiutil.TestedObject, otherObject capiutil.TestedObject, label string) {
+func LabelIsEqual(t *testing.T, referenceObject TestedObject, otherObject TestedObject, label string) {
 	referenceLabel := referenceObject.GetLabels()[label]
 	otherLabel := otherObject.GetLabels()[label]
 	referenceObjectKind := referenceObject.GetObjectKind()
@@ -46,7 +44,7 @@ func LabelIsEqual(t *testing.T, referenceObject capiutil.TestedObject, otherObje
 	}
 }
 
-func AnnotationIsEqual(t *testing.T, referenceObject capiutil.TestedObject, otherObject capiutil.TestedObject, annotation string) {
+func AnnotationIsEqual(t *testing.T, referenceObject TestedObject, otherObject TestedObject, annotation string) {
 	referenceAnnotation := referenceObject.GetAnnotations()[annotation]
 	otherAnnotation := otherObject.GetAnnotations()[annotation]
 	referenceObjectKind := referenceObject.GetObjectKind()
