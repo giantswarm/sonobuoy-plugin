@@ -8,6 +8,7 @@ import (
 
 	"github.com/giantswarm/apiextensions/v3/pkg/label"
 	"github.com/giantswarm/microerror"
+	"github.com/giantswarm/micrologger"
 	capz "sigs.k8s.io/cluster-api-provider-azure/api/v1alpha3"
 	capi "sigs.k8s.io/cluster-api/api/v1alpha3"
 	capiconditions "sigs.k8s.io/cluster-api/util/conditions"
@@ -20,6 +21,11 @@ import (
 func Test_AzureClusterCR(t *testing.T) {
 	var err error
 	ctx := context.Background()
+
+	logger, err := micrologger.New(micrologger.Config{})
+	if err != nil {
+		t.Fatal(err)
+	}
 
 	clusterID, exists := os.LookupEnv("CLUSTER_ID")
 	if !exists {
@@ -64,7 +70,7 @@ func Test_AzureClusterCR(t *testing.T) {
 	assert.LabelIsEqual(t, cluster, azureCluster, label.AzureOperatorVersion)
 
 	// Wait for Ready condition to be True
-	capiutil.WaitForCondition(t, azureCluster, capi.ReadyCondition, capiconditions.IsTrue, azureClusterGetter)
+	capiutil.WaitForCondition(t, ctx, logger, azureCluster, capi.ReadyCondition, capiconditions.IsTrue, azureClusterGetter)
 
 	//
 	// Check Spec

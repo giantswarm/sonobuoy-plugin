@@ -19,3 +19,12 @@ var tooManyObjectsError = &microerror.Error{
 func IsTooManyObjectsError(err error) bool {
 	return microerror.Cause(err) == tooManyObjectsError
 }
+
+var unexpectedConditionValueError = &microerror.Error{
+	Kind: "unexpectedConditionValue",
+}
+
+// IsUnexpectedConditionValue asserts unexpectedConditionValueError.
+func IsUnexpectedConditionValue(err error) bool {
+	return microerror.Cause(err) == unexpectedConditionValueError
+}

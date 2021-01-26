@@ -7,6 +7,7 @@ import (
 
 	"github.com/giantswarm/apiextensions/v3/pkg/label"
 	"github.com/giantswarm/microerror"
+	"github.com/giantswarm/micrologger"
 	capz "sigs.k8s.io/cluster-api-provider-azure/api/v1alpha3"
 	capi "sigs.k8s.io/cluster-api/api/v1alpha3"
 	capiconditions "sigs.k8s.io/cluster-api/util/conditions"
@@ -19,6 +20,11 @@ import (
 func Test_AzureMachinePoolCR(t *testing.T) {
 	var err error
 	ctx := context.Background()
+
+	logger, err := micrologger.New(micrologger.Config{})
+	if err != nil {
+		t.Fatal(err)
+	}
 
 	clusterID, exists := os.LookupEnv("CLUSTER_ID")
 	if !exists {
@@ -69,7 +75,7 @@ func Test_AzureMachinePoolCR(t *testing.T) {
 		// Wait for main conditions checking the remaining parts of the resource:
 		//   Ready == True
 		//
-		capiutil.WaitForCondition(t, &amp, capi.ReadyCondition, capiconditions.IsTrue, azureMachinePoolGetter)
+		capiutil.WaitForCondition(t, ctx, logger, &amp, capi.ReadyCondition, capiconditions.IsTrue, azureMachinePoolGetter)
 
 		// Check that Cluster and AzureMachinePool desired release version matches
 		assert.LabelIsEqual(t, cluster, &amp, label.ReleaseVersion)

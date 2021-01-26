@@ -9,6 +9,7 @@ import (
 	"github.com/giantswarm/apiextensions/v3/pkg/label"
 	"github.com/giantswarm/conditions/pkg/conditions"
 	"github.com/giantswarm/microerror"
+	"github.com/giantswarm/micrologger"
 	capi "sigs.k8s.io/cluster-api/api/v1alpha3"
 	capiconditions "sigs.k8s.io/cluster-api/util/conditions"
 
@@ -20,6 +21,11 @@ import (
 func Test_ClusterCR(t *testing.T) {
 	var err error
 	ctx := context.Background()
+
+	logger, err := micrologger.New(micrologger.Config{})
+	if err != nil {
+		t.Fatal(err)
+	}
 
 	clusterID, exists := os.LookupEnv("CLUSTER_ID")
 	if !exists {
@@ -63,13 +69,13 @@ func Test_ClusterCR(t *testing.T) {
 	//
 
 	// Wait for Ready condition to be True
-	capiutil.WaitForCondition(t, cluster, capi.ReadyCondition, capiconditions.IsTrue, clusterGetter)
+	capiutil.WaitForCondition(t, ctx, logger, cluster, capi.ReadyCondition, capiconditions.IsTrue, clusterGetter)
 
 	// Wait for Creating condition to be False
-	capiutil.WaitForCondition(t, cluster, conditions.Creating, capiconditions.IsFalse, clusterGetter)
+	capiutil.WaitForCondition(t, ctx, logger, cluster, conditions.Creating, capiconditions.IsFalse, clusterGetter)
 
 	// Wait for Upgrading condition to be False
-	capiutil.WaitForCondition(t, cluster, conditions.Upgrading, capiconditions.IsFalse, clusterGetter)
+	capiutil.WaitForCondition(t, ctx, logger, cluster, conditions.Upgrading, capiconditions.IsFalse, clusterGetter)
 
 	desiredRelease := cluster.Labels[label.ReleaseVersion]
 	lastDeployedReleaseRelease := cluster.Annotations[annotation.LastDeployedReleaseVersion]
