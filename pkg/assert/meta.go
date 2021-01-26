@@ -2,6 +2,8 @@ package assert
 
 import (
 	"testing"
+
+	"sigs.k8s.io/cluster-api/util"
 )
 
 func LabelIsSet(t *testing.T, object TestedObject, label string) {
@@ -59,5 +61,20 @@ func AnnotationIsEqual(t *testing.T, referenceObject TestedObject, otherObject T
 			referenceAnnotation,
 			referenceObjectKind.GroupVersionKind().Kind,
 			otherAnnotation)
+	}
+}
+
+func ExpectedOwnerReferenceIsSet(t *testing.T, obj TestedObject, expectedOwner TestedObject) {
+	objectName := obj.GetName()
+	objectKind := obj.GetObjectKind().GroupVersionKind().Kind
+	expectedOwnerKind := expectedOwner.GetObjectKind().GroupVersionKind()
+
+	if !util.IsOwnedByObject(obj, expectedOwner) {
+		t.Fatalf(
+			"%s %q does not have owner reference set to %s %q",
+			objectKind,
+			objectName,
+			expectedOwnerKind,
+			expectedOwner.GetName())
 	}
 }

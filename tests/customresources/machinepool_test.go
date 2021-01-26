@@ -110,6 +110,9 @@ func Test_MachinePoolCR(t *testing.T) {
 		// Check that Cluster and MachinePool have matching 'azure-operator.giantswarm.io/version' labels
 		assert.LabelIsEqual(t, cluster, &mp, label.AzureOperatorVersion)
 
+		// Assert that MachinePool owner reference is set to the specified Cluster
+		assert.ExpectedOwnerReferenceIsSet(t, &mp, cluster)
+
 		//
 		// Check Spec & Status
 		//

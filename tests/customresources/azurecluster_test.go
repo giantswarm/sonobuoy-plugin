@@ -60,17 +60,20 @@ func Test_AzureClusterCR(t *testing.T) {
 	// Check if 'release.giantswarm.io/version' label is set
 	assert.LabelIsSet(t, cluster, label.ReleaseVersion)
 
-	// Check that Cluster and AzureCluster desired release version matches
-	assert.LabelIsEqual(t, cluster, azureCluster, label.ReleaseVersion)
-
 	// Check if 'azure-operator.giantswarm.io/version' label is set
 	assert.LabelIsSet(t, cluster, label.AzureOperatorVersion)
+
+	// Wait for Ready condition to be True
+	capiutil.WaitForCondition(t, ctx, logger, azureCluster, capi.ReadyCondition, capiconditions.IsTrue, azureClusterGetter)
+
+	// Check that Cluster and AzureCluster desired release version matches
+	assert.LabelIsEqual(t, cluster, azureCluster, label.ReleaseVersion)
 
 	// Check that Cluster and AzureCluster azure-operator version matches
 	assert.LabelIsEqual(t, cluster, azureCluster, label.AzureOperatorVersion)
 
-	// Wait for Ready condition to be True
-	capiutil.WaitForCondition(t, ctx, logger, azureCluster, capi.ReadyCondition, capiconditions.IsTrue, azureClusterGetter)
+	// Assert that AzureCluster owner reference is set to the specified Cluster
+	assert.ExpectedOwnerReferenceIsSet(t, azureCluster, cluster)
 
 	//
 	// Check Spec

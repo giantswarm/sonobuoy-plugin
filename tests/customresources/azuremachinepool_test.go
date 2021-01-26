@@ -91,6 +91,9 @@ func Test_AzureMachinePoolCR(t *testing.T) {
 		// Check that MachinePool and AzureMachinePool giantswarm.io/machine-pool label matches
 		assert.LabelIsEqual(t, machinePool, &amp, label.MachinePool)
 
+		// Assert that AzureMachinePool owner reference is set to the specified MachinePool
+		assert.ExpectedOwnerReferenceIsSet(t, &amp, machinePool)
+
 		//
 		// Check Spec
 		//
