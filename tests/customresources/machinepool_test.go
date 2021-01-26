@@ -12,6 +12,7 @@ import (
 	capi "sigs.k8s.io/cluster-api/api/v1alpha3"
 	capiconditions "sigs.k8s.io/cluster-api/util/conditions"
 
+	"github.com/giantswarm/sonobuoy-plugin/v5/pkg/assert"
 	"github.com/giantswarm/sonobuoy-plugin/v5/pkg/capiutil"
 	"github.com/giantswarm/sonobuoy-plugin/v5/pkg/ctrlclient"
 )
@@ -57,19 +58,19 @@ func Test_MachinePoolCR(t *testing.T) {
 		//
 
 		// Check if 'giantswarm.io/machine-pool' label is set
-		assertLabelIsSet(t, &mp, label.MachinePool)
+		assert.LabelIsSet(t, &mp, label.MachinePool)
 
 		// Check if 'release.giantswarm.io/version' label is set
-		assertLabelIsSet(t, &mp, label.ReleaseVersion)
+		assert.LabelIsSet(t, &mp, label.ReleaseVersion)
 
 		// Check if 'azure-operator.giantswarm.io/version' label is set
-		assertLabelIsSet(t, &mp, label.AzureOperatorVersion)
+		assert.LabelIsSet(t, &mp, label.AzureOperatorVersion)
 
 		// Check if 'cluster.k8s.io/cluster-api-autoscaler-node-group-min-size' annotation is set
-		assertAnnotationIsSet(t, &mp, annotation.NodePoolMinSize)
+		assert.AnnotationIsSet(t, &mp, annotation.NodePoolMinSize)
 
 		// Check if 'cluster.k8s.io/cluster-api-autoscaler-node-group-max-size' annotation is set
-		assertAnnotationIsSet(t, &mp, annotation.NodePoolMaxSize)
+		assert.AnnotationIsSet(t, &mp, annotation.NodePoolMaxSize)
 
 		//
 		// Wait for main conditions checking the remaining parts of the resource:
@@ -92,16 +93,16 @@ func Test_MachinePoolCR(t *testing.T) {
 		//
 
 		// Check if Cluster and MachinePool have matching 'release.giantswarm.io/version' labels
-		assertLabelIsEqual(t, cluster, &mp, label.ReleaseVersion)
+		assert.LabelIsEqual(t, cluster, &mp, label.ReleaseVersion)
 
 		// Check if 'release.giantswarm.io/last-deployed-version' annotation is set
-		assertAnnotationIsSet(t, &mp, annotation.LastDeployedReleaseVersion)
+		assert.AnnotationIsSet(t, &mp, annotation.LastDeployedReleaseVersion)
 
 		// Check if Cluster and MachinePool have matching 'release.giantswarm.io/last-deployed-version' annotations
-		assertAnnotationIsEqual(t, cluster, &mp, annotation.LastDeployedReleaseVersion)
+		assert.AnnotationIsEqual(t, cluster, &mp, annotation.LastDeployedReleaseVersion)
 
 		// Check that Cluster and MachinePool have matching 'azure-operator.giantswarm.io/version' labels
-		assertLabelIsEqual(t, cluster, &mp, label.AzureOperatorVersion)
+		assert.LabelIsEqual(t, cluster, &mp, label.AzureOperatorVersion)
 
 		//
 		// Check Spec & Status

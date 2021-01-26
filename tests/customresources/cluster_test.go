@@ -12,6 +12,7 @@ import (
 	capi "sigs.k8s.io/cluster-api/api/v1alpha3"
 	capiconditions "sigs.k8s.io/cluster-api/util/conditions"
 
+	"github.com/giantswarm/sonobuoy-plugin/v5/pkg/assert"
 	"github.com/giantswarm/sonobuoy-plugin/v5/pkg/capiutil"
 	"github.com/giantswarm/sonobuoy-plugin/v5/pkg/ctrlclient"
 )
@@ -46,13 +47,13 @@ func Test_ClusterCR(t *testing.T) {
 	//
 
 	// Check if 'release.giantswarm.io/version' label is set
-	assertLabelIsSet(t, cluster, label.ReleaseVersion)
+	assert.LabelIsSet(t, cluster, label.ReleaseVersion)
 
 	// Check if 'release.giantswarm.io/last-deployed-version' annotation is set
-	assertAnnotationIsSet(t, cluster, annotation.LastDeployedReleaseVersion)
+	assert.AnnotationIsSet(t, cluster, annotation.LastDeployedReleaseVersion)
 
 	// Check if 'azure-operator.giantswarm.io/version' label is set
-	assertLabelIsSet(t, cluster, label.AzureOperatorVersion)
+	assert.LabelIsSet(t, cluster, label.AzureOperatorVersion)
 
 	//
 	// Wait for main conditions checking the remaining parts of the resource:

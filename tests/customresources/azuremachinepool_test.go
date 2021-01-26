@@ -11,6 +11,7 @@ import (
 	capi "sigs.k8s.io/cluster-api/api/v1alpha3"
 	capiconditions "sigs.k8s.io/cluster-api/util/conditions"
 
+	"github.com/giantswarm/sonobuoy-plugin/v5/pkg/assert"
 	"github.com/giantswarm/sonobuoy-plugin/v5/pkg/capiutil"
 	"github.com/giantswarm/sonobuoy-plugin/v5/pkg/ctrlclient"
 )
@@ -56,13 +57,13 @@ func Test_AzureMachinePoolCR(t *testing.T) {
 		//
 
 		// Check if 'giantswarm.io/machine-pool' label is set
-		assertLabelIsSet(t, &amp, label.MachinePool)
+		assert.LabelIsSet(t, &amp, label.MachinePool)
 
 		// Check if 'release.giantswarm.io/version' label is set
-		assertLabelIsSet(t, cluster, label.ReleaseVersion)
+		assert.LabelIsSet(t, cluster, label.ReleaseVersion)
 
 		// Check if 'azure-operator.giantswarm.io/version' label is set
-		assertLabelIsSet(t, cluster, label.AzureOperatorVersion)
+		assert.LabelIsSet(t, cluster, label.AzureOperatorVersion)
 
 		//
 		// Wait for main conditions checking the remaining parts of the resource:
@@ -71,10 +72,10 @@ func Test_AzureMachinePoolCR(t *testing.T) {
 		capiutil.WaitForCondition(t, &amp, capi.ReadyCondition, capiconditions.IsTrue, azureMachinePoolGetter)
 
 		// Check that Cluster and AzureMachinePool desired release version matches
-		assertLabelIsEqual(t, cluster, &amp, label.ReleaseVersion)
+		assert.LabelIsEqual(t, cluster, &amp, label.ReleaseVersion)
 
 		// Check that Cluster and AzureMachinePool azure-operator version matches
-		assertLabelIsEqual(t, cluster, &amp, label.AzureOperatorVersion)
+		assert.LabelIsEqual(t, cluster, &amp, label.AzureOperatorVersion)
 
 		machinePool, err := capiutil.FindMachinePool(ctx, cpCtrlClient, amp.Name)
 		if err != nil {
@@ -82,7 +83,7 @@ func Test_AzureMachinePoolCR(t *testing.T) {
 		}
 
 		// Check that MachinePool and AzureMachinePool giantswarm.io/machine-pool label matches
-		assertLabelIsEqual(t, machinePool, &amp, label.MachinePool)
+		assert.LabelIsEqual(t, machinePool, &amp, label.MachinePool)
 
 		//
 		// Check Spec

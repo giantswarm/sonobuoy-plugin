@@ -12,6 +12,7 @@ import (
 	capi "sigs.k8s.io/cluster-api/api/v1alpha3"
 	capiconditions "sigs.k8s.io/cluster-api/util/conditions"
 
+	"github.com/giantswarm/sonobuoy-plugin/v5/pkg/assert"
 	"github.com/giantswarm/sonobuoy-plugin/v5/pkg/capiutil"
 	"github.com/giantswarm/sonobuoy-plugin/v5/pkg/ctrlclient"
 )
@@ -51,16 +52,16 @@ func Test_AzureClusterCR(t *testing.T) {
 	//
 
 	// Check if 'release.giantswarm.io/version' label is set
-	assertLabelIsSet(t, cluster, label.ReleaseVersion)
+	assert.LabelIsSet(t, cluster, label.ReleaseVersion)
 
 	// Check that Cluster and AzureCluster desired release version matches
-	assertLabelIsEqual(t, cluster, azureCluster, label.ReleaseVersion)
+	assert.LabelIsEqual(t, cluster, azureCluster, label.ReleaseVersion)
 
 	// Check if 'azure-operator.giantswarm.io/version' label is set
-	assertLabelIsSet(t, cluster, label.AzureOperatorVersion)
+	assert.LabelIsSet(t, cluster, label.AzureOperatorVersion)
 
 	// Check that Cluster and AzureCluster azure-operator version matches
-	assertLabelIsEqual(t, cluster, azureCluster, label.AzureOperatorVersion)
+	assert.LabelIsEqual(t, cluster, azureCluster, label.AzureOperatorVersion)
 
 	// Wait for Ready condition to be True
 	capiutil.WaitForCondition(t, azureCluster, capi.ReadyCondition, capiconditions.IsTrue, azureClusterGetter)
