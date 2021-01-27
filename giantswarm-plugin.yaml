@@ -3,7 +3,7 @@ sonobuoy-config:
   plugin-name: giantswarm
   result-format: raw
 spec:
-  image: quay.io/giantswarm/sonobuoy-plugin
+  image: quay.io/giantswarm/sonobuoy-plugin:0.0.0-2583bd62a1b1bfac286f919cd2a9f75e29c4d354
   imagePullPolicy: Always
   name: plugin
   env:
