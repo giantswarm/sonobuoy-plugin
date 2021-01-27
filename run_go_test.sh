@@ -3,6 +3,7 @@
 set -eo pipefail
 
 results_dir="${RESULTS_DIR:-/tmp/results}"
+junit_report_file="${results_dir}/report.xml"
 
 # saveResults prepares the results for handoff to the Sonobuoy worker.
 # See: https://github.com/vmware-tanzu/sonobuoy/blob/master/docs/plugins.md
@@ -16,10 +17,8 @@ trap saveResults EXIT
 
 mkdir "${results_dir}" || true
 
-exit 1
-
 # Run all tests.
-go test -v -timeout 99999s ./tests/... 2>&1 | tee -a "${results_dir}/out"
+go test -v -timeout 99999s ./tests/... 2>&1 | go-junit-report > "${junit_report_file}"
 
 # Run the deletion test (tiers down the cluster).
-go test -v -timeout 99999s ./deletiontests/... 2>&1 | tee -a "${results_dir}/out"
+#go test -v -timeout 99999s ./deletiontests/... 2>&1 | go-junit-report >> "${junit_report_file}"
