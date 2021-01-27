@@ -16,6 +16,8 @@ trap saveResults EXIT
 
 mkdir "${results_dir}" || true
 
+exit 1
+
 # Run all tests.
 go test -v -timeout 99999s ./tests/... 2>&1 | tee -a "${results_dir}/out"
 
