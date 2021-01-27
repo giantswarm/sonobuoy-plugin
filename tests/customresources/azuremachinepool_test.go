@@ -101,10 +101,10 @@ func Test_AzureMachinePoolCR(t *testing.T) {
 			t.Fatalf("AzureMachinePool %s/%s does not have Spec.ProviderID field set", amp.Namespace, amp.Name)
 		}
 
-		desiredReplicas := *machinePool.Spec.Replicas
-		if len(amp.Spec.ProviderIDList) != int(desiredReplicas) {
+		foundReplicasInMachinePool := machinePool.Status.Replicas
+		if len(amp.Spec.ProviderIDList) != int(foundReplicasInMachinePool) {
 			t.Fatalf("expected %d replicas for AzureMachinePool %s/%s, but found %d in AzureMachinePool.Spec.ProviderIDList",
-				int(desiredReplicas),
+				int(foundReplicasInMachinePool),
 				amp.Namespace,
 				amp.Name,
 				len(amp.Spec.ProviderIDList))
@@ -113,9 +113,9 @@ func Test_AzureMachinePoolCR(t *testing.T) {
 		//
 		// Check Status
 		//
-		if amp.Status.Replicas != desiredReplicas {
+		if amp.Status.Replicas != foundReplicasInMachinePool {
 			t.Fatalf("expected %d replicas for AzureMachinePool %s/%s, but found %d in AzureMachinePool.Status.Replicas",
-				desiredReplicas,
+				foundReplicasInMachinePool,
 				amp.Namespace,
 				amp.Name,
 				amp.Status.Replicas)

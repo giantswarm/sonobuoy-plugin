@@ -3,6 +3,7 @@ package customresources
 import (
 	"context"
 	"os"
+	"strconv"
 	"testing"
 
 	"github.com/giantswarm/apiextensions/v3/pkg/annotation"
@@ -117,9 +118,24 @@ func Test_MachinePoolCR(t *testing.T) {
 		// Check Spec & Status
 		//
 
-		// Check if specified number of replicas is discovered
-		if *mp.Spec.Replicas != mp.Status.Replicas {
-			t.Fatalf("specified %d replicas, found %d", *mp.Spec.Replicas, mp.Status.Replicas)
+		minReplicasString := mp.Annotations[annotation.NodePoolMinSize]
+		minReplicas, err := strconv.Atoi(minReplicasString)
+		if err != nil {
+			t.Fatalf("error converting annotation %q to integer %v", annotation.NodePoolMinSize, err)
+		}
+
+		maxReplicasString := mp.Annotations[annotation.NodePoolMaxSize]
+		maxReplicas, err := strconv.Atoi(maxReplicasString)
+		if err != nil {
+			t.Fatalf("error converting annotation %q to integer %v", annotation.NodePoolMaxSize, err)
+		}
+
+		// Check if number of found replicas is within expected cluster autoscaler limits
+		if int(mp.Status.Replicas) < minReplicas {
+			t.Fatalf("specified min %d replicas in annotation %q, found %d", minReplicas, annotation.NodePoolMinSize, mp.Status.Replicas)
+		}
+		if int(mp.Status.Replicas) > maxReplicas {
+			t.Fatalf("specified max %d replicas in annotation %q, found %d", maxReplicas, annotation.NodePoolMaxSize, mp.Status.Replicas)
 		}
 
 		// Check if all discovered replicas are ready

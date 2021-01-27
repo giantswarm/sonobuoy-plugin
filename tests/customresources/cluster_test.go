@@ -55,9 +55,6 @@ func Test_ClusterCR(t *testing.T) {
 	// Check if 'release.giantswarm.io/version' label is set
 	assert.LabelIsSet(t, cluster, label.ReleaseVersion)
 
-	// Check if 'release.giantswarm.io/last-deployed-version' annotation is set
-	assert.AnnotationIsSet(t, cluster, annotation.LastDeployedReleaseVersion)
-
 	// Check if 'azure-operator.giantswarm.io/version' label is set
 	assert.LabelIsSet(t, cluster, label.AzureOperatorVersion)
 
@@ -76,6 +73,13 @@ func Test_ClusterCR(t *testing.T) {
 
 	// Wait for Upgrading condition to be False
 	capiutil.WaitForCondition(t, ctx, logger, cluster, conditions.Upgrading, capiconditions.IsFalse, clusterGetter)
+
+	//
+	// Continue checking metadata
+	//
+
+	// Check if 'release.giantswarm.io/last-deployed-version' annotation is set
+	assert.AnnotationIsSet(t, cluster, annotation.LastDeployedReleaseVersion)
 
 	desiredRelease := cluster.Labels[label.ReleaseVersion]
 	lastDeployedReleaseRelease := cluster.Annotations[annotation.LastDeployedReleaseVersion]
