@@ -1,6 +1,7 @@
 package assert
 
 import (
+	"fmt"
 	"testing"
 
 	"sigs.k8s.io/cluster-api/util"
@@ -67,14 +68,15 @@ func AnnotationIsEqual(t *testing.T, referenceObject TestedObject, otherObject T
 func ExpectedOwnerReferenceIsSet(t *testing.T, obj TestedObject, expectedOwner TestedObject) {
 	objectName := obj.GetName()
 	objectKind := obj.GetObjectKind().GroupVersionKind().Kind
-	expectedOwnerKind := expectedOwner.GetObjectKind().GroupVersionKind()
+	expectedOwnerGVK := expectedOwner.GetObjectKind().GroupVersionKind()
+	expectedOwnerGVKString := fmt.Sprintf("%s (%s)", expectedOwnerGVK.Kind, expectedOwnerGVK.GroupVersion())
 
 	if !util.IsOwnedByObject(obj, expectedOwner) {
 		t.Fatalf(
-			"%s %q does not have owner reference set to %s %q",
+			"%s %q does not have owner reference set to expected %s %q",
 			objectKind,
 			objectName,
-			expectedOwnerKind,
+			expectedOwnerGVKString,
 			expectedOwner.GetName())
 	}
 }
