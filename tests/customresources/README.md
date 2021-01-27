@@ -46,7 +46,7 @@ Metadata checks:
 
 Status checks:
 
-- `Spec.Replicas` equal to `Status.Replicas`
+- `Status.Replicas` is withing defined cluster autoscaler min and max values
 - `Status.Replicas` equal to `Status.ReadyReplicas`
 - Waiting for `Cluster.Status.Conditions[Ready]` to have status `True`
 - Waiting for `Cluster.Status.Conditions[Creating]` to have Status `False`
