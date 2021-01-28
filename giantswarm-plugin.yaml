@@ -3,7 +3,7 @@ sonobuoy-config:
   plugin-name: giantswarm
   result-format: junit
 spec:
-  image: quay.io/giantswarm/sonobuoy-plugin:0.0.0-300eee95b70bc35857424b54b45e61f3c5729d08
+  image: quay.io/giantswarm/sonobuoy-plugin:0.0.0-ca3b87aee2730984b16413f88f0582d8f20e15e7
   imagePullPolicy: Always
   name: plugin
   env:
