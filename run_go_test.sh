@@ -17,8 +17,10 @@ trap saveResults EXIT
 
 mkdir "${results_dir}" || true
 
+echo "Report will be saved to ${junit_report_file}"
+
 # Run all tests.
-go test -v -timeout 99999s ./tests/... 2>&1 | go-junit-report > "${junit_report_file}"
+go test -v -timeout 99999s ./tests/autoscaler 2>&1 | go-junit-report > "${junit_report_file}"
 
 # Run the deletion test (tiers down the cluster).
-#go test -v -timeout 99999s ./deletiontests/... 2>&1 | go-junit-report >> "${junit_report_file}"
+#go test -v -timeout 99999s ./deletiontests/... | go-junit-report >> "${junit_report_file}"
