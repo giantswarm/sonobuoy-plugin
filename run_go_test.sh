@@ -9,7 +9,7 @@ junit_report_file="${results_dir}/report.xml"
 # See: https://github.com/vmware-tanzu/sonobuoy/blob/master/site/docs/master/plugins.md
 saveResults() {
 	# Signal to the worker that we are done and where to find the results.
-	printf ${junit_report_file > "${results_dir}/done"
+	printf ${junit_report_file} > "${results_dir}/done"
 }
 
 # Ensure that we tell the Sonobuoy worker we are done regardless of results.
