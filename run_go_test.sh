@@ -16,9 +16,9 @@ trap saveResults EXIT
 mkdir "${results_dir}" || true
 
 # Run all tests.
-go test -v -timeout 99999s ./tests/... 2>&1 | go-junit-report >"${results_dir}/report.xml"
+go test -v -timeout 6h ./tests/... 2>&1 | go-junit-report >"${results_dir}/report.xml"
 
-# Run the deletion test (tiers down the cluster).
-go test -v -timeout 99999s ./deletiontests/... 2>&1 | go-junit-report >"${results_dir}/deletiontests.xml"
+# Run the deletion test (tear down the cluster).
+go test -v -timeout 2h ./deletiontests/... 2>&1 | go-junit-report >"${results_dir}/deletiontests.xml"
 
 jrm "${junit_report_file}" "${results_dir}/report.xml" "${results_dir}/deletiontests.xml"
