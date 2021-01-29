@@ -21,7 +21,11 @@ import (
 
 const (
 	helloWorldAppName  = "loadtest-app"
-	NginxIngressValues = "baseDomain: %s"
+	NginxIngressValues = `baseDomain: %s
+controller:
+  admissionWebhooks:
+    enabled: false
+`
 	HelloWorldValues   = `
 replicaCount: 1
 ingress:
