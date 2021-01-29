@@ -26,7 +26,7 @@ controller:
   admissionWebhooks:
     enabled: false
 `
-	HelloWorldValues   = `
+	HelloWorldValues = `
 replicaCount: 1
 ingress:
   enabled: true
@@ -119,7 +119,7 @@ func Test_Ingress(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	pod, err := createPodThatSendsHttpRequestToEndpoint(ctx, cpCtrlClient, clusterID, appEndpoint)
+	pod, cm, err := createPodThatSendsHttpRequestToEndpoint(ctx, cpCtrlClient, clusterID, appEndpoint)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -150,14 +150,44 @@ func Test_Ingress(t *testing.T) {
 	err = backoff.RetryNotify(o, b, n)
 	if err != nil {
 		_ = cpCtrlClient.Delete(ctx, pod)
+		_ = cpCtrlClient.Delete(ctx, cm)
 		_ = appTest.CleanUp(ctx, apps)
 		t.Fatalf("couldn't get successful HTTP response from hello world app: %v", err)
 	}
 	_ = cpCtrlClient.Delete(ctx, pod)
+	_ = cpCtrlClient.Delete(ctx, cm)
 	_ = appTest.CleanUp(ctx, apps)
 }
 
-func createPodThatSendsHttpRequestToEndpoint(ctx context.Context, ctrlClient client.Client, namespace, httpEndpoint string) (*corev1.Pod, error) {
+func createPodThatSendsHttpRequestToEndpoint(ctx context.Context, ctrlClient client.Client, namespace, httpEndpoint string) (*corev1.Pod, *corev1.ConfigMap, error) {
+	script := `
+#!/bin/sh
+
+attempts=5
+while [ $attempts -gt 0 ]
+do
+	if wget --timeout 5 -O- %s
+	then
+		echo "Success"
+		exit 0
+    fi
+    attempts=$((attempts-1))
+	sleep 5
+done
+`
+	cm := &corev1.ConfigMap{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "e2e-ingress",
+			Namespace: namespace,
+		},
+		Data: map[string]string{"script.sh": fmt.Sprintf(script, httpEndpoint)},
+	}
+
+	err := ctrlClient.Create(ctx, cm)
+	if err != nil {
+		return nil, nil, err
+	}
+
 	pod := &corev1.Pod{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "e2e-ingress",
@@ -165,13 +195,39 @@ func createPodThatSendsHttpRequestToEndpoint(ctx context.Context, ctrlClient cli
 		},
 		Spec: corev1.PodSpec{
 			RestartPolicy: corev1.RestartPolicyNever,
-			Containers:    []corev1.Container{{Name: "test", Image: "busybox", Command: []string{"wget"}, Args: []string{httpEndpoint, "--timeout", "5", "-O", "-"}}},
+			Containers: []corev1.Container{
+				{
+					Name:    "test",
+					Image:   "busybox",
+					Command: []string{"/bin/sh"},
+					Args:    []string{"/script.sh"},
+					VolumeMounts: []corev1.VolumeMount{
+						{
+							Name:      "script",
+							MountPath: "/script.sh",
+							SubPath:   "script.sh",
+						},
+					},
+				},
+			},
+			Volumes: []corev1.Volume{
+				{
+					Name: "script",
+					VolumeSource: corev1.VolumeSource{
+						ConfigMap: &corev1.ConfigMapVolumeSource{
+							LocalObjectReference: corev1.LocalObjectReference{
+								Name: "e2e-ingress",
+							},
+						},
+					},
+				},
+			},
 		},
 	}
-	err := ctrlClient.Create(ctx, pod)
+	err = ctrlClient.Create(ctx, pod)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
-	return pod, nil
+	return pod, cm, nil
 }
