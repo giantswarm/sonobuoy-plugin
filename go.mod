@@ -8,7 +8,7 @@ require (
 	github.com/Azure/go-autorest/autorest/azure/auth v0.5.2
 	github.com/Azure/go-autorest/autorest/to v0.4.0
 	github.com/giantswarm/apiextensions/v3 v3.13.0
-	github.com/giantswarm/apptest v0.8.0
+	github.com/giantswarm/apptest v0.9.0
 	github.com/giantswarm/backoff v0.2.0
 	github.com/giantswarm/conditions v0.3.0
 	github.com/giantswarm/microerror v0.3.0
@@ -19,7 +19,7 @@ require (
 	k8s.io/client-go v0.18.9
 	sigs.k8s.io/cluster-api v0.3.11
 	sigs.k8s.io/cluster-api-provider-azure v0.4.9
-	sigs.k8s.io/controller-runtime v0.6.3
+	sigs.k8s.io/controller-runtime v0.6.4
 )
 
 replace (
