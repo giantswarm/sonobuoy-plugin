@@ -6,6 +6,7 @@ import (
 
 	"github.com/Azure/go-autorest/autorest/to"
 	"github.com/giantswarm/apiextensions/v3/pkg/annotation"
+	"github.com/giantswarm/apiextensions/v3/pkg/apis/core/v1alpha1"
 	"github.com/giantswarm/apiextensions/v3/pkg/label"
 	"github.com/giantswarm/microerror"
 	corev1 "k8s.io/api/core/v1"
@@ -55,6 +56,11 @@ func (p *AzureProviderSupport) CreateNodePool(ctx context.Context, client ctrl.C
 	}
 
 	mp, err := p.createMachinePool(ctx, client, cluster, azureMP, azs)
+	if err != nil {
+		return nil, microerror.Mask(err)
+	}
+
+	_, err = p.createSpark(ctx, client, cluster, azureMP)
 	if err != nil {
 		return nil, microerror.Mask(err)
 	}
@@ -185,4 +191,30 @@ func (p *AzureProviderSupport) createAzureMachinePool(ctx context.Context, clien
 	}
 
 	return azureMachinePool, nil
+}
+
+func (p *AzureProviderSupport) createSpark(ctx context.Context, client ctrl.Client, cluster *capi.Cluster, azureMachinePool *expcapz.AzureMachinePool) (*v1alpha1.Spark, error) {
+	spark := &v1alpha1.Spark{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "Spark",
+			APIVersion: "core.giantswarm.io/v1alpha1",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      azureMachinePool.Name,
+			Namespace: cluster.Namespace,
+			Labels: map[string]string{
+				label.Cluster:         cluster.Labels[label.Cluster],
+				label.ReleaseVersion:  cluster.Labels[label.ReleaseVersion],
+				capi.ClusterLabelName: cluster.Name,
+			},
+		},
+		Spec: v1alpha1.SparkSpec{},
+	}
+
+	err := client.Create(ctx, spark)
+	if err != nil {
+		return nil, microerror.Mask(err)
+	}
+
+	return spark, nil
 }
