@@ -1,6 +1,7 @@
 package ctrlclient
 
 import (
+	corev1alpha1 "github.com/giantswarm/apiextensions/v3/pkg/apis/core/v1alpha1"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apiextensions-apiserver/pkg/apis/apiextensions"
@@ -22,6 +23,7 @@ func init() {
 		expcapz.AddToScheme,
 		appsv1.AddToScheme,
 		corev1.AddToScheme,
+		corev1alpha1.AddToScheme,
 	}
 	err := schemeBuilder.AddToScheme(Scheme)
 	if err != nil {
