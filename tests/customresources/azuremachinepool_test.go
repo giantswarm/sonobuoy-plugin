@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/giantswarm/apiextensions/v3/pkg/label"
+	"github.com/giantswarm/conditions/pkg/conditions"
 	"github.com/giantswarm/microerror"
 	"github.com/giantswarm/micrologger"
 	capz "sigs.k8s.io/cluster-api-provider-azure/api/v1alpha3"
@@ -55,6 +56,15 @@ func Test_AzureMachinePoolCR(t *testing.T) {
 		return machinePool
 	}
 
+	machinePoolGetter := func(machinePoolID string) capiutil.TestedObject {
+		machinePool, err := capiutil.FindMachinePool(ctx, cpCtrlClient, machinePoolID)
+		if err != nil {
+			t.Fatalf("error finding MachinePool %s: %s", machinePoolID, microerror.JSON(err))
+		}
+
+		return machinePool
+	}
+
 	for _, azureMachinePool := range azureMachinePools {
 		amp := azureMachinePool
 
@@ -87,6 +97,20 @@ func Test_AzureMachinePoolCR(t *testing.T) {
 		if err != nil {
 			t.Fatalf("error finding MachinePool %s: %s", amp.Name, microerror.JSON(err))
 		}
+
+		//
+		// Since we will be using MachinePool Status in the checks, we should
+		// wait for the MachinePool to be ready and to have up-to-date conditions.
+		//
+
+		// Wait for Ready condition to be True
+		capiutil.WaitForCondition(t, ctx, logger, machinePool, capi.ReadyCondition, capiconditions.IsTrue, machinePoolGetter)
+
+		// Wait for Creating condition to be False
+		capiutil.WaitForCondition(t, ctx, logger, machinePool, conditions.Creating, capiconditions.IsFalse, machinePoolGetter)
+
+		// Wait for Upgrading condition to be False
+		capiutil.WaitForCondition(t, ctx, logger, machinePool, conditions.Upgrading, capiconditions.IsFalse, machinePoolGetter)
 
 		// Check that MachinePool and AzureMachinePool giantswarm.io/machine-pool label matches
 		assert.LabelIsEqual(t, machinePool, &amp, label.MachinePool)
