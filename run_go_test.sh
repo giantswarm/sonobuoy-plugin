@@ -20,7 +20,7 @@ go test -v -timeout 6h ./tests/... 2>&1 | go-junit-report >"${results_dir}/repor
 
 cp "${results_dir}/report.xml" "${junit_report_file}"
 
-if [[ $TEST_DELETION -eq 1 ]]; then
+if [[ $TEST_DELETION -eq "1" ]]; then
   # Run the deletion test (tear down the cluster).
   go test -v -timeout 2h ./deletiontests/... 2>&1 | go-junit-report >"${results_dir}/deletiontests.xml"
 
