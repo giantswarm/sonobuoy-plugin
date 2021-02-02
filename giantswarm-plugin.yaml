@@ -11,6 +11,7 @@ spec:
     - name: CP_KUBECONFIG
     - name: CLUSTER_ID
     - name: PROVIDER
+    - name: TEST_DELETION
   resources: { }
   volumeMounts:
     - mountPath: /tmp/results
