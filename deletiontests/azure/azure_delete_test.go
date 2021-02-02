@@ -25,6 +25,11 @@ func Test_AzureDelete(t *testing.T) {
 
 	ctx := context.Background()
 
+	enableThisTest, exists := os.LookupEnv("TEST_DELETION")
+	if !exists || enableThisTest != "1" {
+		t.Skip("Skipping cluster deletion test (pass 'TEST_DELETION=1' env var to enable it)")
+	}
+
 	logger, err := micrologger.New(micrologger.Config{})
 	if err != nil {
 		t.Fatal(err)
