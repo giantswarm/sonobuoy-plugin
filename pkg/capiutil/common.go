@@ -58,7 +58,7 @@ func WaitForCondition(t *testing.T, ctx context.Context, logger micrologger.Logg
 		}
 	}
 
-	b := backoff.NewExponential(backoff.LongMaxWait, retryInterval)
+	b := backoff.NewExponential(backoff.MediumMaxWait, retryInterval)
 	n := backoff.NewNotifier(logger, ctx)
 	err := backoff.RetryNotify(o, b, n)
 	if err != nil {

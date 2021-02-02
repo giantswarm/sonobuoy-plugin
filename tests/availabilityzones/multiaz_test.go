@@ -64,7 +64,7 @@ func Test_AvailabilityZones(t *testing.T) {
 
 			return nil
 		}
-		b := backoff.NewConstant(backoff.LongMaxWait, backoff.LongMaxInterval)
+		b := backoff.NewConstant(backoff.MediumMaxWait, backoff.LongMaxInterval)
 		n := backoff.NewNotifier(microloggertest.New(), ctx)
 		err = backoff.RetryNotify(o, b, n)
 		if err != nil {
