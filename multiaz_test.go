@@ -1,4 +1,4 @@
-package availabilityzones
+package sonobuoy_plugin
 
 import (
 	"context"
@@ -10,7 +10,9 @@ import (
 
 	"github.com/giantswarm/backoff"
 	"github.com/giantswarm/microerror"
-	"github.com/giantswarm/micrologger/microloggertest"
+	"github.com/giantswarm/micrologger"
+	capi "sigs.k8s.io/cluster-api/api/v1alpha3"
+	capiconditions "sigs.k8s.io/cluster-api/util/conditions"
 	ctrl "sigs.k8s.io/controller-runtime/pkg/client"
 
 	"github.com/giantswarm/sonobuoy-plugin/v5/pkg/capiutil"
@@ -18,10 +20,24 @@ import (
 	"github.com/giantswarm/sonobuoy-plugin/v5/pkg/provider"
 )
 
+// Test_AvailabilityZones pulls supported AZs from `provider.Support` implementation, creates a
+// node pool with all available AZs and then waits until the created `MachinePool`
+// becomes `Ready`. Once the created node pool is ready, the test pulls present
+// AZs from created provider node pool instance and compares them to originally
+// specified ones.
 func Test_AvailabilityZones(t *testing.T) {
+	t.Parallel()
+
 	var err error
 
 	ctx := context.Background()
+
+	regularLogger, err := micrologger.New(micrologger.Config{})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	logger := NewTestLogger(regularLogger, t)
 
 	cpCtrlClient, err := ctrlclient.CreateCPCtrlClient()
 	if err != nil {
@@ -48,6 +64,10 @@ func Test_AvailabilityZones(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	t.Cleanup(func() {
+		_ = cpCtrlClient.Delete(ctx, machinePool)
+	})
+
 	// Wait for Node Pool to come up.
 	{
 		o := func() error {
@@ -58,14 +78,14 @@ func Test_AvailabilityZones(t *testing.T) {
 			}
 
 			// Return error for retry until node pool nodes are Ready.
-			if machinePool.Status.ReadyReplicas != *machinePool.Spec.Replicas {
+			if !capiconditions.IsTrue(machinePool, capi.ReadyCondition) {
 				return errors.New("node pool is not ready yet")
 			}
 
 			return nil
 		}
-		b := backoff.NewConstant(backoff.MediumMaxWait, backoff.LongMaxInterval)
-		n := backoff.NewNotifier(microloggertest.New(), ctx)
+		b := backoff.NewConstant(backoff.LongMaxWait, backoff.LongMaxInterval)
+		n := backoff.NewNotifier(logger, ctx)
 		err = backoff.RetryNotify(o, b, n)
 		if err != nil {
 			t.Fatalf("failed to get MachinePool %q for Cluster %q: %s", machinePool.Name, clusterID, microerror.JSON(err))

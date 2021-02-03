@@ -1,4 +1,4 @@
-package ingress
+package sonobuoy_plugin
 
 import (
 	"context"
@@ -39,7 +39,15 @@ ingress:
 `
 )
 
+// Test_Ingress creates a Pod in the tenant cluster namespace in the MC cluster
+// that tries to send an HTTP request to a "hello world" app
+// (https://github.com/giantswarm/loadtest-app) running in the tenant cluster.
+// The app is installed in the WC together with the nginx ingress controller
+// app (https://github.com/giantswarm/nginx-ingress-controller-app), so that it
+// can receive traffic from outside the cluster.
 func Test_Ingress(t *testing.T) {
+	t.Parallel()
+
 	var err error
 
 	ctx := context.Background()
@@ -49,10 +57,12 @@ func Test_Ingress(t *testing.T) {
 		t.Fatalf("error creating CP k8s client: %v", err)
 	}
 
-	logger, err := micrologger.New(micrologger.Config{})
+	regularLogger, err := micrologger.New(micrologger.Config{})
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	logger := NewTestLogger(regularLogger, t)
 
 	clusterID, exists := os.LookupEnv("CLUSTER_ID")
 	if !exists {
@@ -68,6 +78,8 @@ func Test_Ingress(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	logger.Debugf(ctx, "Testing that we can send http requests to a deployed app exposed via Ingress")
 
 	clusterList := &capiv1alpha3.ClusterList{}
 	err = cpCtrlClient.List(ctx, clusterList, client.MatchingLabels{capiv1alpha3.ClusterLabelName: clusterID})

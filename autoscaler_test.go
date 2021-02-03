@@ -1,4 +1,4 @@
-package ingress
+package sonobuoy_plugin
 
 import (
 	"context"
@@ -8,11 +8,11 @@ import (
 	"github.com/Azure/go-autorest/autorest/to"
 	"github.com/giantswarm/backoff"
 	"github.com/giantswarm/microerror"
+	"github.com/giantswarm/micrologger"
 	appsv1 "k8s.io/api/apps/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	"github.com/giantswarm/micrologger"
 	corev1 "k8s.io/api/core/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
@@ -24,7 +24,10 @@ const (
 	helloWorldDeploymentName = "helloworld"
 )
 
+// Test_Autoscaler checks the Cluster Autoscaler works by creating a deployment with PodAntiAffinity and scaling it up and down.
 func Test_Autoscaler(t *testing.T) {
+	t.Parallel()
+
 	var err error
 
 	ctx := context.Background()
@@ -34,11 +37,14 @@ func Test_Autoscaler(t *testing.T) {
 		t.Fatalf("error creating TC k8s client: %v", err)
 	}
 
-	logger, err := micrologger.New(micrologger.Config{})
+	regularLogger, err := micrologger.New(micrologger.Config{})
 	if err != nil {
 		t.Fatal(err)
 	}
 
+	logger := NewTestLogger(regularLogger, t)
+
+	logger.Debugf(ctx, "Testing the Cluster Autoscaler")
 	logger.Debugf(ctx, "Creating %s deployment", helloWorldDeploymentName)
 
 	deployment, err := createDeployment(ctx, tcCtrlClient, 1)

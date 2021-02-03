@@ -1,4 +1,4 @@
-package customresources
+package sonobuoy_plugin
 
 import (
 	"context"
@@ -19,13 +19,17 @@ import (
 )
 
 func Test_ClusterCR(t *testing.T) {
+	t.Parallel()
+
 	var err error
 	ctx := context.Background()
 
-	logger, err := micrologger.New(micrologger.Config{})
+	regularLogger, err := micrologger.New(micrologger.Config{})
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	logger := NewTestLogger(regularLogger, t)
 
 	clusterID, exists := os.LookupEnv("CLUSTER_ID")
 	if !exists {

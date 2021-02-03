@@ -1,4 +1,4 @@
-package customresources
+package sonobuoy_plugin
 
 import (
 	"context"
@@ -19,13 +19,17 @@ import (
 )
 
 func Test_AzureClusterCR(t *testing.T) {
+	t.Parallel()
+
 	var err error
 	ctx := context.Background()
 
-	logger, err := micrologger.New(micrologger.Config{})
+	regularLogger, err := micrologger.New(micrologger.Config{})
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	logger := NewTestLogger(regularLogger, t)
 
 	clusterID, exists := os.LookupEnv("CLUSTER_ID")
 	if !exists {
@@ -40,6 +44,15 @@ func Test_AzureClusterCR(t *testing.T) {
 	cluster, err := capiutil.FindCluster(ctx, cpCtrlClient, clusterID)
 	if err != nil {
 		t.Fatalf("error finding cluster: %s", microerror.JSON(err))
+	}
+
+	clusterGetter := func(clusterName string) capiutil.TestedObject {
+		cluster, err := capiutil.FindCluster(ctx, cpCtrlClient, clusterName)
+		if err != nil {
+			t.Fatalf("error finding cluster: %s", microerror.JSON(err))
+		}
+
+		return cluster
 	}
 
 	azureClusterGetter := func(azureClusterName string) capiutil.TestedObject {
@@ -64,6 +77,7 @@ func Test_AzureClusterCR(t *testing.T) {
 	assert.LabelIsSet(t, cluster, label.AzureOperatorVersion)
 
 	// Wait for Ready condition to be True
+	capiutil.WaitForCondition(t, ctx, logger, cluster, capi.ReadyCondition, capiconditions.IsTrue, clusterGetter)
 	capiutil.WaitForCondition(t, ctx, logger, azureCluster, capi.ReadyCondition, capiconditions.IsTrue, azureClusterGetter)
 
 	// Check that Cluster and AzureCluster desired release version matches

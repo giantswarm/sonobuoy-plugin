@@ -1,4 +1,4 @@
-package cptcconnectivity
+package sonobuoy_plugin
 
 import (
 	"github.com/giantswarm/microerror"
