@@ -21,6 +21,7 @@ import (
 
 	"github.com/giantswarm/sonobuoy-plugin/v5/pkg/azure"
 	"github.com/giantswarm/sonobuoy-plugin/v5/pkg/azure/credentials"
+	"github.com/giantswarm/sonobuoy-plugin/v5/pkg/randomid"
 )
 
 const (
@@ -152,15 +153,17 @@ func (p *AzureProviderSupport) createAzureMachinePool(ctx context.Context, clien
 		}
 	}
 
+	nodepoolName := randomid.New()
+
 	azureMachinePool := &expcapz.AzureMachinePool{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      "e2etst",
+			Name:      nodepoolName,
 			Namespace: cluster.Namespace,
 			Labels: map[string]string{
 				label.AzureOperatorVersion: cluster.Labels[label.AzureOperatorVersion],
 				label.Cluster:              cluster.Labels[label.Cluster],
 				capi.ClusterLabelName:      cluster.Name,
-				label.MachinePool:          "e2etst",
+				label.MachinePool:          nodepoolName,
 				label.Organization:         cluster.Labels[label.Organization],
 				label.ReleaseVersion:       cluster.Labels[label.ReleaseVersion],
 			},

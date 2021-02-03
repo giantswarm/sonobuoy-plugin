@@ -101,8 +101,6 @@ func Test_Autoscaler(t *testing.T) {
 	if err != nil {
 		t.Fatalf("timeout waiting for cluster to scale down: %v", err)
 	}
-
-	tcCtrlClient.Delete(ctx, deployment)
 }
 
 func getWorkersCount(ctx context.Context, ctrlClient client.Client) (int, error) {
