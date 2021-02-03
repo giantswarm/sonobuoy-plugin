@@ -1,4 +1,4 @@
-package customresources
+package sonobuoy_plugin
 
 import (
 	"context"
@@ -19,6 +19,8 @@ import (
 )
 
 func Test_AzureMachinePoolCR(t *testing.T) {
+	t.Parallel()
+
 	var err error
 	ctx := context.Background()
 

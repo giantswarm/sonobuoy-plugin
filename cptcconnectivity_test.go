@@ -1,4 +1,4 @@
-package cptcconnectivity
+package sonobuoy_plugin
 
 import (
 	"context"
@@ -21,7 +21,12 @@ const (
 	podName = "e2e-connectivity"
 )
 
+// Test_CPTCConnectivity checks that there is connectivity between the CP and
+// the TC k8s API. It creates a Pod in the tenant cluster namespace in the
+// MC cluster that sends an HTTP request to the WC k8s API.
 func Test_CPTCConnectivity(t *testing.T) {
+	t.Parallel()
+
 	var err error
 
 	ctx := context.Background()
@@ -91,7 +96,7 @@ func Test_CPTCConnectivity(t *testing.T) {
 
 		return nil
 	}
-	b := backoff.NewExponential(backoff.ShortMaxWait, backoff.ShortMaxInterval)
+	b := backoff.NewExponential(backoff.MediumMaxWait, backoff.ShortMaxInterval)
 	n := backoff.NewNotifier(logger, ctx)
 	err = backoff.RetryNotify(o, b, n)
 	if err != nil {

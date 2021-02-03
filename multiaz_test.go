@@ -1,4 +1,4 @@
-package availabilityzones
+package sonobuoy_plugin
 
 import (
 	"context"
@@ -7,6 +7,7 @@ import (
 	"reflect"
 	"sort"
 	"testing"
+	"time"
 
 	"github.com/giantswarm/backoff"
 	"github.com/giantswarm/microerror"
@@ -18,7 +19,14 @@ import (
 	"github.com/giantswarm/sonobuoy-plugin/v5/pkg/provider"
 )
 
+// Test_AvailabilityZones pulls supported AZs from `provider.Support` implementation, creates a
+// node pool with all available AZs and then waits until the created `MachinePool`
+// becomes `Ready`. Once the created node pool is ready, the test pulls present
+// AZs from created provider node pool instance and compares them to originally
+// specified ones.
 func Test_AvailabilityZones(t *testing.T) {
+	t.Parallel()
+
 	var err error
 
 	ctx := context.Background()
@@ -64,7 +72,7 @@ func Test_AvailabilityZones(t *testing.T) {
 
 			return nil
 		}
-		b := backoff.NewConstant(backoff.MediumMaxWait, backoff.LongMaxInterval)
+		b := backoff.NewConstant(20*time.Minute, backoff.LongMaxInterval)
 		n := backoff.NewNotifier(microloggertest.New(), ctx)
 		err = backoff.RetryNotify(o, b, n)
 		if err != nil {
