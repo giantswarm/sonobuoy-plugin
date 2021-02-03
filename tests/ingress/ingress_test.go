@@ -124,6 +124,12 @@ func Test_Ingress(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	t.Cleanup(func() {
+		_ = cpCtrlClient.Delete(ctx, pod)
+		_ = cpCtrlClient.Delete(ctx, cm)
+		_ = appTest.CleanUp(ctx, apps)
+	})
+
 	o := func() error {
 		objectKey, err := client.ObjectKeyFromObject(pod)
 		if err != nil {
@@ -149,14 +155,8 @@ func Test_Ingress(t *testing.T) {
 	n := backoff.NewNotifier(logger, ctx)
 	err = backoff.RetryNotify(o, b, n)
 	if err != nil {
-		_ = cpCtrlClient.Delete(ctx, pod)
-		_ = cpCtrlClient.Delete(ctx, cm)
-		_ = appTest.CleanUp(ctx, apps)
 		t.Fatalf("couldn't get successful HTTP response from hello world app: %v", err)
 	}
-	_ = cpCtrlClient.Delete(ctx, pod)
-	_ = cpCtrlClient.Delete(ctx, cm)
-	_ = appTest.CleanUp(ctx, apps)
 }
 
 func createPodThatSendsHttpRequestToEndpoint(ctx context.Context, ctrlClient client.Client, namespace, httpEndpoint string) (*corev1.Pod, *corev1.ConfigMap, error) {

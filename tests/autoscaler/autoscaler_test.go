@@ -46,10 +46,14 @@ func Test_Autoscaler(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	t.Cleanup(func() {
+		_ = tcCtrlClient.Delete(ctx, deployment)
+	})
+
 	// Get number of worker nodes.
 	workersCount, err := getWorkersCount(ctx, tcCtrlClient)
 	if err != nil {
-		cleanupAndFatal(ctx, deployment, tcCtrlClient, t, "%v", err)
+		t.Fatalf("%v", err)
 	}
 
 	logger.Debugf(ctx, "Found %d worker nodes", workersCount)
@@ -59,7 +63,7 @@ func Test_Autoscaler(t *testing.T) {
 	logger.Debugf(ctx, "Scaling deployment %s/%s to %d replicas", helloWorldNamespace, helloWorldDeploymentName, expectedWorkersCount)
 	err = scaleDeployment(ctx, tcCtrlClient, expectedWorkersCount)
 	if err != nil {
-		cleanupAndFatal(ctx, deployment, tcCtrlClient, t, "%v", err)
+		t.Fatalf("%v", err)
 	}
 
 	logger.Debugf(ctx, "Waiting for %d worker nodes to exist", expectedWorkersCount)
@@ -81,7 +85,7 @@ func Test_Autoscaler(t *testing.T) {
 	n := backoff.NewNotifier(logger, ctx)
 	err = backoff.RetryNotify(o, b, n)
 	if err != nil {
-		cleanupAndFatal(ctx, deployment, tcCtrlClient, t, "timeout waiting for cluster to scale up: %v", err)
+		t.Fatalf("timeout waiting for cluster to scale up: %v", err)
 	}
 
 	// Scale down deployment, wait for one node to get deleted.
@@ -89,21 +93,14 @@ func Test_Autoscaler(t *testing.T) {
 	logger.Debugf(ctx, "Scaling deployment %s/%s to %d replicas", helloWorldNamespace, helloWorldDeploymentName, expectedWorkersCount)
 	err = scaleDeployment(ctx, tcCtrlClient, expectedWorkersCount)
 	if err != nil {
-		cleanupAndFatal(ctx, deployment, tcCtrlClient, t, "timeout waiting for cluster to scale down: %v", err)
+		t.Fatalf("timeout waiting for cluster to scale down: %v", err)
 	}
 
 	b = backoff.NewConstant(backoff.LongMaxWait, 10*time.Second)
 	err = backoff.RetryNotify(o, b, n)
 	if err != nil {
-		cleanupAndFatal(ctx, deployment, tcCtrlClient, t, "timeout waiting for cluster to scale down: %v", err)
+		t.Fatalf("timeout waiting for cluster to scale down: %v", err)
 	}
-
-	tcCtrlClient.Delete(ctx, deployment)
-}
-
-func cleanupAndFatal(ctx context.Context, deployment *appsv1.Deployment, ctrlClient client.Client, t *testing.T, msg string, args ...interface{}) {
-	ctrlClient.Delete(ctx, deployment)
-	t.Fatalf(msg, args...)
 }
 
 func getWorkersCount(ctx context.Context, ctrlClient client.Client) (int, error) {

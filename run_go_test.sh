@@ -18,11 +18,7 @@ mkdir "${results_dir}" || true
 # Run all tests.
 go test -v -timeout 6h ./tests/... 2>&1 | go-junit-report >"${results_dir}/report.xml"
 
-cp "${results_dir}/report.xml" "${junit_report_file}"
+# Run the deletion test (tear down the cluster).
+go test -v -timeout 2h ./deletiontests/... 2>&1 | go-junit-report >"${results_dir}/deletiontests.xml"
 
-if [[ $TEST_DELETION -eq "1" ]]; then
-  # Run the deletion test (tear down the cluster).
-  go test -v -timeout 2h ./deletiontests/... 2>&1 | go-junit-report >"${results_dir}/deletiontests.xml"
-
-  jrm "${junit_report_file}" "${results_dir}/report.xml" "${results_dir}/deletiontests.xml"
-fi
+jrm "${junit_report_file}" "${results_dir}/report.xml" "${results_dir}/deletiontests.xml"
