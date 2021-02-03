@@ -36,10 +36,12 @@ func Test_CPTCConnectivity(t *testing.T) {
 		t.Fatalf("error creating CP k8s client: %v", err)
 	}
 
-	logger, err := micrologger.New(micrologger.Config{})
+	regularLogger, err := micrologger.New(micrologger.Config{})
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	logger := NewTestLogger(regularLogger, t)
 
 	clusterID, exists := os.LookupEnv("CLUSTER_ID")
 	if !exists {
@@ -55,7 +57,7 @@ func Test_CPTCConnectivity(t *testing.T) {
 	k8sAPIEndpointHost := clusterList.Items[0].Spec.ControlPlaneEndpoint.Host
 	k8sAPIEndpointPort := fmt.Sprintf("%d", clusterList.Items[0].Spec.ControlPlaneEndpoint.Port)
 
-	t.Log("testing connectivity between control plane cluster and tenant cluster")
+	logger.Debugf(ctx, "testing connectivity between control plane cluster and tenant cluster")
 	pod := &corev1.Pod{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      podName,

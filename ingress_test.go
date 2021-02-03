@@ -57,10 +57,12 @@ func Test_Ingress(t *testing.T) {
 		t.Fatalf("error creating CP k8s client: %v", err)
 	}
 
-	logger, err := micrologger.New(micrologger.Config{})
+	regularLogger, err := micrologger.New(micrologger.Config{})
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	logger := NewTestLogger(regularLogger, t)
 
 	clusterID, exists := os.LookupEnv("CLUSTER_ID")
 	if !exists {
@@ -77,7 +79,7 @@ func Test_Ingress(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	t.Log("Testing that we can send http requests to a deployed app exposed via Ingress")
+	logger.Debugf(ctx, "Testing that we can send http requests to a deployed app exposed via Ingress")
 
 	clusterList := &capiv1alpha3.ClusterList{}
 	err = cpCtrlClient.List(ctx, clusterList, client.MatchingLabels{capiv1alpha3.ClusterLabelName: clusterID})

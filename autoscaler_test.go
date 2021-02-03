@@ -37,12 +37,14 @@ func Test_Autoscaler(t *testing.T) {
 		t.Fatalf("error creating TC k8s client: %v", err)
 	}
 
-	logger, err := micrologger.New(micrologger.Config{})
+	regularLogger, err := micrologger.New(micrologger.Config{})
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	t.Log("Testing the Cluster Autoscaler")
+	logger := NewTestLogger(regularLogger, t)
+
+	logger.Debugf(ctx, "Testing the Cluster Autoscaler")
 	logger.Debugf(ctx, "Creating %s deployment", helloWorldDeploymentName)
 
 	deployment, err := createDeployment(ctx, tcCtrlClient, 1)
