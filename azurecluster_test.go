@@ -55,6 +55,9 @@ func Test_AzureClusterCR(t *testing.T) {
 		return cluster
 	}
 
+	// Wait for Ready condition to be True
+	capiutil.WaitForCondition(t, ctx, logger, cluster, capi.ReadyCondition, capiconditions.IsTrue, clusterGetter)
+
 	azureClusterGetter := func(azureClusterName string) capiutil.TestedObject {
 		azureCluster, err := capiutil.FindAzureCluster(ctx, cpCtrlClient, azureClusterName)
 		if err != nil {

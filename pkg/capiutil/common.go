@@ -4,6 +4,7 @@ import (
 	"context"
 	"reflect"
 	"testing"
+	"time"
 
 	"github.com/giantswarm/backoff"
 	"github.com/giantswarm/microerror"
@@ -58,7 +59,7 @@ func WaitForCondition(t *testing.T, ctx context.Context, logger micrologger.Logg
 		}
 	}
 
-	b := backoff.NewExponential(backoff.MediumMaxWait, retryInterval)
+	b := backoff.NewExponential(20*time.Minute, retryInterval)
 	n := backoff.NewNotifier(logger, ctx)
 	err := backoff.RetryNotify(o, b, n)
 	if err != nil {
