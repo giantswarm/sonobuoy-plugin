@@ -7,5 +7,5 @@ type ResourceGroupsClient interface {
 }
 
 type VMSSClient interface {
-	Get(ctx context.Context, resourceGroupName, vmssName string) (VMSS, error)
+	GetVMSS(ctx context.Context, resourceGroupName, vmssName string) (VMSS, error)
 }

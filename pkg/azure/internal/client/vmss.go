@@ -24,6 +24,7 @@ func NewVMSSClient(authorizer autorest.Authorizer, subscriptionID string) *VMSSC
 	}
 }
 
-func (c *VMSSClient) Get(ctx context.Context, resourceGroupName, vmssName string) (VMSS, error) {
-	return c.Get(ctx, resourceGroupName, vmssName)
+func (c *VMSSClient) GetVMSS(ctx context.Context, resourceGroupName, vmssName string) (VMSS, error) {
+	vmss, err := c.Get(ctx, resourceGroupName, vmssName)
+	return &vmss, err
 }

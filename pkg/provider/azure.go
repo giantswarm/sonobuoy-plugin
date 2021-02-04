@@ -76,7 +76,7 @@ func (p *AzureProviderSupport) GetProviderAZs() []string {
 func (p *AzureProviderSupport) GetNodePoolAZs(ctx context.Context, clusterID, nodepoolID string) ([]string, error) {
 	var zones []string
 	nodepoolVMSSName := fmt.Sprintf("nodepool-%s", nodepoolID)
-	vmss, err := p.azureClient.VMSS.Get(ctx, clusterID, nodepoolVMSSName)
+	vmss, err := p.azureClient.VMSS.GetVMSS(ctx, clusterID, nodepoolVMSSName)
 	if err != nil {
 		return nil, microerror.Mask(err)
 	}
