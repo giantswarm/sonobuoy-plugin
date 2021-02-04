@@ -2,6 +2,7 @@ package sonobuoy_plugin
 
 import (
 	"context"
+	"os"
 	"testing"
 	"time"
 
@@ -12,6 +13,8 @@ import (
 	appsv1 "k8s.io/api/apps/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	capi "sigs.k8s.io/cluster-api/api/v1alpha3"
+	"sigs.k8s.io/cluster-api/exp/api/v1alpha3"
 
 	corev1 "k8s.io/api/core/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -37,6 +40,11 @@ func Test_Autoscaler(t *testing.T) {
 		t.Fatalf("error creating TC k8s client: %v", err)
 	}
 
+	cpCtrlClient, err := ctrlclient.CreateCPCtrlClient()
+	if err != nil {
+		t.Fatalf("error creating CP k8s client: %v", err)
+	}
+
 	regularLogger, err := micrologger.New(micrologger.Config{})
 	if err != nil {
 		t.Fatal(err)
@@ -44,10 +52,31 @@ func Test_Autoscaler(t *testing.T) {
 
 	logger := NewTestLogger(regularLogger, t)
 
-	logger.Debugf(ctx, "Testing the Cluster Autoscaler")
+	clusterID, exists := os.LookupEnv("CLUSTER_ID")
+	if !exists {
+		t.Fatal("missing CLUSTER_ID environment variable")
+	}
+
+	// Get a list of node pools.
+	var machinePoolName string
+	{
+		var machinePools v1alpha3.MachinePoolList
+		err := cpCtrlClient.List(ctx, &machinePools, client.MatchingLabels{capi.ClusterLabelName: clusterID})
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		if len(machinePools.Items) == 0 {
+			t.Fatal("Expected one machine pool to exist, none found.")
+		}
+
+		machinePoolName = machinePools.Items[0].Name
+	}
+
+	logger.Debugf(ctx, "Testing the Cluster Autoscaler with machine pool %s", machinePoolName)
 	logger.Debugf(ctx, "Creating %s deployment", helloWorldDeploymentName)
 
-	deployment, err := createDeployment(ctx, tcCtrlClient, 1)
+	deployment, err := createDeployment(ctx, tcCtrlClient, 1, machinePoolName)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -57,7 +86,7 @@ func Test_Autoscaler(t *testing.T) {
 	})
 
 	// Get number of worker nodes.
-	workersCount, err := getWorkersCount(ctx, tcCtrlClient)
+	workersCount, err := getWorkersCount(ctx, tcCtrlClient, machinePoolName)
 	if err != nil {
 		t.Fatalf("%v", err)
 	}
@@ -76,7 +105,7 @@ func Test_Autoscaler(t *testing.T) {
 
 	// Wait for nodes to increase by one.
 	o := func() error {
-		workersCount, err := getWorkersCount(ctx, tcCtrlClient)
+		workersCount, err := getWorkersCount(ctx, tcCtrlClient, machinePoolName)
 		if err != nil {
 			return microerror.Mask(err)
 		}
@@ -109,9 +138,9 @@ func Test_Autoscaler(t *testing.T) {
 	}
 }
 
-func getWorkersCount(ctx context.Context, ctrlClient client.Client) (int, error) {
+func getWorkersCount(ctx context.Context, ctrlClient client.Client, machinePoolName string) (int, error) {
 	workers := &corev1.NodeList{}
-	err := ctrlClient.List(ctx, workers, client.MatchingLabels{"kubernetes.io/role": "worker"})
+	err := ctrlClient.List(ctx, workers, client.MatchingLabels{"kubernetes.io/role": "worker", "giantswarm.io/machine-pool": machinePoolName})
 	if err != nil {
 		return -1, err
 	}
@@ -150,7 +179,7 @@ func scaleDeployment(ctx context.Context, ctrlClient client.Client, expectedWork
 	return nil
 }
 
-func createDeployment(ctx context.Context, ctrlClient client.Client, replicas int32) (*appsv1.Deployment, error) {
+func createDeployment(ctx context.Context, ctrlClient client.Client, replicas int32, machinePoolName string) (*appsv1.Deployment, error) {
 	deployment := &appsv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      helloWorldDeploymentName,
@@ -187,6 +216,9 @@ func createDeployment(ctx context.Context, ctrlClient client.Client, replicas in
 								},
 							},
 						},
+					},
+					NodeSelector: map[string]string{
+						"giantswarm.io/machine-pool": machinePoolName,
 					},
 					SecurityContext: &corev1.PodSecurityContext{
 						RunAsUser: to.Int64Ptr(1000),
