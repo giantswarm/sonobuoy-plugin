@@ -74,6 +74,7 @@ func Test_Autoscaler(t *testing.T) {
 		for _, machinePool := range machinePools.Items {
 			if capiconditions.IsTrue(&machinePool, capi.ReadyCondition) {
 				machinePoolName = machinePool.Name
+				break
 			}
 		}
 
