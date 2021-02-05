@@ -42,10 +42,19 @@ func Test_MachinePoolCR(t *testing.T) {
 		t.Fatalf("error creating CP k8s client: %v", err)
 	}
 
-	cluster, err := capiutil.FindCluster(ctx, cpCtrlClient, clusterID)
-	if err != nil {
-		t.Fatalf("error finding cluster: %s", microerror.JSON(err))
+	clusterGetter := func(clusterName string) capiutil.TestedObject {
+		cluster, err := capiutil.FindCluster(ctx, cpCtrlClient, clusterName)
+		if err != nil {
+			t.Fatalf("error finding cluster: %s", microerror.JSON(err))
+		}
+
+		return cluster
 	}
+
+	cluster := clusterGetter(clusterID).(*capi.Cluster)
+
+	// Wait for Ready condition to be True
+	capiutil.WaitForCondition(t, ctx, logger, cluster, capi.ReadyCondition, capiconditions.IsTrue, clusterGetter)
 
 	machinePoolGetter := func(machinePoolID string) capiutil.TestedObject {
 		machinePool, err := capiutil.FindMachinePool(ctx, cpCtrlClient, machinePoolID)
