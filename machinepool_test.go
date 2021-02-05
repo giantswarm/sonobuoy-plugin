@@ -13,6 +13,7 @@ import (
 	"github.com/giantswarm/microerror"
 	"github.com/giantswarm/micrologger"
 	capi "sigs.k8s.io/cluster-api/api/v1alpha3"
+	capiexp "sigs.k8s.io/cluster-api/exp/api/v1alpha3"
 	capiconditions "sigs.k8s.io/cluster-api/util/conditions"
 	ctrl "sigs.k8s.io/controller-runtime/pkg/client"
 
@@ -55,9 +56,6 @@ func Test_MachinePoolCR(t *testing.T) {
 
 	cluster := clusterGetter(clusterID).(*capi.Cluster)
 
-	// Wait for Ready condition to be True
-	capiutil.WaitForCondition(t, ctx, logger, cluster, capi.ReadyCondition, capiconditions.IsTrue, clusterGetter)
-
 	machinePoolGetter := func(machinePoolID string) capiutil.TestedObject {
 		machinePool, err := capiutil.FindMachinePool(ctx, cpCtrlClient, machinePoolID)
 		if err != nil {
@@ -72,7 +70,18 @@ func Test_MachinePoolCR(t *testing.T) {
 		t.Fatalf("error finding MachinePools for cluster %q: %s", clusterID, microerror.JSON(err))
 	}
 
+	var readyMachinePools []capiexp.MachinePool
 	for _, machinePool := range machinePools {
+		if capiconditions.IsTrue(&machinePool, capi.ReadyCondition) {
+			readyMachinePools = append(readyMachinePools, machinePool)
+		}
+	}
+
+	if len(readyMachinePools) < 1 {
+		t.Fatal("there are no 'Ready' node pools to test")
+	}
+
+	for _, machinePool := range readyMachinePools {
 		mp := machinePool
 
 		//

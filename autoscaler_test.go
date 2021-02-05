@@ -14,7 +14,8 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	capi "sigs.k8s.io/cluster-api/api/v1alpha3"
-	"sigs.k8s.io/cluster-api/exp/api/v1alpha3"
+	capiexp "sigs.k8s.io/cluster-api/exp/api/v1alpha3"
+	capiconditions "sigs.k8s.io/cluster-api/util/conditions"
 
 	corev1 "k8s.io/api/core/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -60,7 +61,7 @@ func Test_Autoscaler(t *testing.T) {
 	// Get a list of node pools.
 	var machinePoolName string
 	{
-		var machinePools v1alpha3.MachinePoolList
+		var machinePools capiexp.MachinePoolList
 		err := cpCtrlClient.List(ctx, &machinePools, client.MatchingLabels{capi.ClusterLabelName: clusterID})
 		if err != nil {
 			t.Fatal(err)
@@ -70,7 +71,16 @@ func Test_Autoscaler(t *testing.T) {
 			t.Fatal("Expected one machine pool to exist, none found.")
 		}
 
-		machinePoolName = machinePools.Items[0].Name
+		for _, machinePool := range machinePools.Items {
+			if capiconditions.IsTrue(&machinePool, capi.ReadyCondition) {
+				machinePoolName = machinePool.Name
+			}
+		}
+
+		if machinePoolName == "" {
+			t.Fatal("Expected one machine pool to be 'Ready', none found.")
+		}
+
 	}
 
 	logger.Debugf(ctx, "Testing the Cluster Autoscaler with machine pool %s", machinePoolName)
