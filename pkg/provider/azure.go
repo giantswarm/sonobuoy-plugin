@@ -21,6 +21,7 @@ import (
 
 	"github.com/giantswarm/sonobuoy-plugin/v5/pkg/azure"
 	"github.com/giantswarm/sonobuoy-plugin/v5/pkg/azure/credentials"
+	"github.com/giantswarm/sonobuoy-plugin/v5/pkg/capiutil"
 	"github.com/giantswarm/sonobuoy-plugin/v5/pkg/randomid"
 )
 
@@ -114,6 +115,7 @@ func (p *AzureProviderSupport) createMachinePool(ctx context.Context, client ctr
 				label.MachinePool:          azureMachinePool.Labels[label.MachinePool],
 				label.Organization:         cluster.Labels[label.Organization],
 				label.ReleaseVersion:       cluster.Labels[label.ReleaseVersion],
+				capiutil.E2ENodepool:       "true",
 			},
 			Annotations: map[string]string{
 				annotation.MachinePoolName: "availability zone verification e2e test",
@@ -166,6 +168,7 @@ func (p *AzureProviderSupport) createAzureMachinePool(ctx context.Context, clien
 				label.MachinePool:          nodepoolName,
 				label.Organization:         cluster.Labels[label.Organization],
 				label.ReleaseVersion:       cluster.Labels[label.ReleaseVersion],
+				capiutil.E2ENodepool:       "true",
 			},
 		},
 		Spec: expcapz.AzureMachinePoolSpec{
@@ -209,6 +212,7 @@ func (p *AzureProviderSupport) createSpark(ctx context.Context, client ctrl.Clie
 				label.Cluster:         cluster.Labels[label.Cluster],
 				label.ReleaseVersion:  cluster.Labels[label.ReleaseVersion],
 				capi.ClusterLabelName: cluster.Name,
+				capiutil.E2ENodepool:  "true",
 			},
 		},
 		Spec: v1alpha1.SparkSpec{},

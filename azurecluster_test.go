@@ -11,7 +11,6 @@ import (
 	"github.com/giantswarm/micrologger"
 	capz "sigs.k8s.io/cluster-api-provider-azure/api/v1alpha3"
 	capi "sigs.k8s.io/cluster-api/api/v1alpha3"
-	capiexp "sigs.k8s.io/cluster-api/exp/api/v1alpha3"
 	capiconditions "sigs.k8s.io/cluster-api/util/conditions"
 
 	"github.com/giantswarm/sonobuoy-plugin/v5/pkg/assert"
@@ -113,29 +112,18 @@ func Test_AzureClusterCR(t *testing.T) {
 		t.Fatalf("error finding MachinePools for cluster %q: %s", clusterID, microerror.JSON(err))
 	}
 
-	var readyMachinePools []capiexp.MachinePool
-	for _, machinePool := range machinePools {
-		if capiconditions.IsTrue(&machinePool, capi.ReadyCondition) {
-			readyMachinePools = append(readyMachinePools, machinePool)
-		}
-	}
-
-	if len(readyMachinePools) < 1 {
-		t.Fatal("there are no 'Ready' node pools to test")
-	}
-
-	sort.Slice(readyMachinePools, func(i int, j int) bool {
-		return readyMachinePools[i].Name < readyMachinePools[j].Name
+	sort.Slice(machinePools, func(i int, j int) bool {
+		return machinePools[i].Name < machinePools[j].Name
 	})
 
 	subnets := azureCluster.Spec.NetworkSpec.Subnets
 
 	// Check number of allocated subnets
-	if len(subnets) != len(readyMachinePools) {
+	if len(subnets) != len(machinePools) {
 		t.Fatalf("AzureCluster '%s/%s': expected %d subnets in Spec.NetworkSpec.Subnets (to match number of MachinePools), but got %d instead",
 			azureCluster.Namespace,
 			azureCluster.Name,
-			len(readyMachinePools),
+			len(machinePools),
 			len(subnets))
 	}
 
@@ -146,12 +134,12 @@ func Test_AzureClusterCR(t *testing.T) {
 	const expectedSubnetCIDRBlocks = 1
 	for i := range subnets {
 		// Check if subnet name matches MachinePool name
-		if subnets[i].Name != readyMachinePools[i].Name {
+		if subnets[i].Name != machinePools[i].Name {
 			t.Fatalf("AzureCluster '%s/%s': expected subnet name %q (in Spec.NetworkSpec.Subnets) to match MachinePool name %q",
 				azureCluster.Namespace,
 				azureCluster.Name,
 				subnets[i].Name,
-				readyMachinePools[i].Name)
+				machinePools[i].Name)
 		}
 
 		// Check if we have allocated correct number of CIDR blocks for the subnet

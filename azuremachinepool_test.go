@@ -10,7 +10,6 @@ import (
 	"github.com/giantswarm/microerror"
 	"github.com/giantswarm/micrologger"
 	capz "sigs.k8s.io/cluster-api-provider-azure/api/v1alpha3"
-	capzexp "sigs.k8s.io/cluster-api-provider-azure/exp/api/v1alpha3"
 	capi "sigs.k8s.io/cluster-api/api/v1alpha3"
 	capiconditions "sigs.k8s.io/cluster-api/util/conditions"
 
@@ -58,15 +57,8 @@ func Test_AzureMachinePoolCR(t *testing.T) {
 		t.Fatalf("error finding MachinePools for cluster %q: %s", clusterID, microerror.JSON(err))
 	}
 
-	var readyAzureMachinePools []capzexp.AzureMachinePool
-	for _, azureMachinePool := range azureMachinePools {
-		if capiconditions.IsTrue(&azureMachinePool, capi.ReadyCondition) {
-			readyAzureMachinePools = append(readyAzureMachinePools, azureMachinePool)
-		}
-	}
-
-	if len(readyAzureMachinePools) < 1 {
-		t.Fatal("there are no 'Ready' node pools to test")
+	if len(azureMachinePools) == 0 {
+		t.Fatal("Expected one azure machine pool to exist, none found.")
 	}
 
 	azureMachinePoolGetter := func(azureMachinePoolID string) capiutil.TestedObject {
@@ -87,7 +79,7 @@ func Test_AzureMachinePoolCR(t *testing.T) {
 		return machinePool
 	}
 
-	for _, azureMachinePool := range readyAzureMachinePools {
+	for _, azureMachinePool := range azureMachinePools {
 		amp := azureMachinePool
 
 		//

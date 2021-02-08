@@ -11,15 +11,12 @@ import (
 	"github.com/giantswarm/microerror"
 	"github.com/giantswarm/micrologger"
 	appsv1 "k8s.io/api/apps/v1"
+	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	capi "sigs.k8s.io/cluster-api/api/v1alpha3"
-	capiexp "sigs.k8s.io/cluster-api/exp/api/v1alpha3"
-	capiconditions "sigs.k8s.io/cluster-api/util/conditions"
-
-	corev1 "k8s.io/api/core/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
+	"github.com/giantswarm/sonobuoy-plugin/v5/pkg/capiutil"
 	"github.com/giantswarm/sonobuoy-plugin/v5/pkg/ctrlclient"
 )
 
@@ -58,30 +55,18 @@ func Test_Autoscaler(t *testing.T) {
 		t.Fatal("missing CLUSTER_ID environment variable")
 	}
 
-	// Get a list of node pools.
 	var machinePoolName string
 	{
-		var machinePools capiexp.MachinePoolList
-		err := cpCtrlClient.List(ctx, &machinePools, client.MatchingLabels{capi.ClusterLabelName: clusterID})
+		machinePools, err := capiutil.FindMachinePoolsForCluster(ctx, cpCtrlClient, clusterID)
 		if err != nil {
-			t.Fatal(err)
+			t.Fatalf("error finding MachinePools for cluster %q: %s", clusterID, microerror.JSON(err))
 		}
 
-		if len(machinePools.Items) == 0 {
+		if len(machinePools) == 0 {
 			t.Fatal("Expected one machine pool to exist, none found.")
 		}
 
-		for _, machinePool := range machinePools.Items {
-			if capiconditions.IsTrue(&machinePool, capi.ReadyCondition) {
-				machinePoolName = machinePool.Name
-				break
-			}
-		}
-
-		if machinePoolName == "" {
-			t.Fatal("Expected one machine pool to be 'Ready', none found.")
-		}
-
+		machinePoolName = machinePools[0].Name
 	}
 
 	logger.Debugf(ctx, "Testing the Cluster Autoscaler with machine pool %s", machinePoolName)
