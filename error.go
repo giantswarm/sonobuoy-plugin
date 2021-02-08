@@ -8,6 +8,11 @@ var executionFailedError = &microerror.Error{
 	Kind: "executionFailedError",
 }
 
-var missingEnvironmentVariable = &microerror.Error{
-	Kind: "missingEnvironmentVariable",
+var notFoundError = &microerror.Error{
+	Kind: "notFoundError",
+}
+
+// IsNotFound asserts notFoundError.
+func IsNotFound(err error) bool {
+	return microerror.Cause(err) == notFoundError
 }
