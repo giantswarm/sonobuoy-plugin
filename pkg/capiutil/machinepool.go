@@ -31,7 +31,10 @@ func FindMachinePool(ctx context.Context, client ctrl.Client, machinePoolID stri
 	return machinePool, nil
 }
 
-func FindMachinePoolsForCluster(ctx context.Context, client ctrl.Client, clusterID string) ([]capiexp.MachinePool, error) {
+// FindNonTestingMachinePoolsForCluster returns list of `MachinePool` belonging to the
+// specified cluster ID.
+// It filters out potential `MachinePool` created by other e2e tests.
+func FindNonTestingMachinePoolsForCluster(ctx context.Context, client ctrl.Client, clusterID string) ([]capiexp.MachinePool, error) {
 	var machinePools []capiexp.MachinePool
 	{
 		var machinePoolList capiexp.MachinePoolList
@@ -40,7 +43,14 @@ func FindMachinePoolsForCluster(ctx context.Context, client ctrl.Client, cluster
 			return nil, microerror.Mask(err)
 		}
 
-		machinePools = machinePoolList.Items
+		for _, machinePool := range machinePoolList.Items {
+			_, isE2E := machinePool.Labels[E2ENodepool]
+			if isE2E {
+				continue
+			}
+
+			machinePools = append(machinePools, machinePool)
+		}
 	}
 
 	return machinePools, nil

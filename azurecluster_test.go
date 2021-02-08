@@ -80,7 +80,6 @@ func Test_AzureClusterCR(t *testing.T) {
 	assert.LabelIsSet(t, cluster, label.AzureOperatorVersion)
 
 	// Wait for Ready condition to be True
-	capiutil.WaitForCondition(t, ctx, logger, cluster, capi.ReadyCondition, capiconditions.IsTrue, clusterGetter)
 	capiutil.WaitForCondition(t, ctx, logger, azureCluster, capi.ReadyCondition, capiconditions.IsTrue, azureClusterGetter)
 
 	// Check that Cluster and AzureCluster desired release version matches
@@ -108,7 +107,7 @@ func Test_AzureClusterCR(t *testing.T) {
 	}
 
 	// Check subnets, first we get MachinePools, as we need one subnet per node pool
-	machinePools, err := capiutil.FindMachinePoolsForCluster(ctx, cpCtrlClient, clusterID)
+	machinePools, err := capiutil.FindNonTestingMachinePoolsForCluster(ctx, cpCtrlClient, clusterID)
 	if err != nil {
 		t.Fatalf("error finding MachinePools for cluster %q: %s", clusterID, microerror.JSON(err))
 	}

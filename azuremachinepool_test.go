@@ -52,12 +52,13 @@ func Test_AzureMachinePoolCR(t *testing.T) {
 
 	cluster := clusterGetter(clusterID).(*capi.Cluster)
 
-	// Wait for Ready condition to be True
-	capiutil.WaitForCondition(t, ctx, logger, cluster, capi.ReadyCondition, capiconditions.IsTrue, clusterGetter)
-
-	azureMachinePools, err := capiutil.FindAzureMachinePoolsForCluster(ctx, cpCtrlClient, clusterID)
+	azureMachinePools, err := capiutil.FindNonTestingAzureMachinePoolsForCluster(ctx, cpCtrlClient, clusterID)
 	if err != nil {
 		t.Fatalf("error finding MachinePools for cluster %q: %s", clusterID, microerror.JSON(err))
+	}
+
+	if len(azureMachinePools) == 0 {
+		t.Fatal("Expected one azure machine pool to exist, none found.")
 	}
 
 	azureMachinePoolGetter := func(azureMachinePoolID string) capiutil.TestedObject {

@@ -55,9 +55,6 @@ func Test_MachinePoolCR(t *testing.T) {
 
 	cluster := clusterGetter(clusterID).(*capi.Cluster)
 
-	// Wait for Ready condition to be True
-	capiutil.WaitForCondition(t, ctx, logger, cluster, capi.ReadyCondition, capiconditions.IsTrue, clusterGetter)
-
 	machinePoolGetter := func(machinePoolID string) capiutil.TestedObject {
 		machinePool, err := capiutil.FindMachinePool(ctx, cpCtrlClient, machinePoolID)
 		if err != nil {
@@ -67,9 +64,13 @@ func Test_MachinePoolCR(t *testing.T) {
 		return machinePool
 	}
 
-	machinePools, err := capiutil.FindMachinePoolsForCluster(ctx, cpCtrlClient, clusterID)
+	machinePools, err := capiutil.FindNonTestingMachinePoolsForCluster(ctx, cpCtrlClient, clusterID)
 	if err != nil {
 		t.Fatalf("error finding MachinePools for cluster %q: %s", clusterID, microerror.JSON(err))
+	}
+
+	if len(machinePools) == 0 {
+		t.Fatal("Expected one machine pool to exist, none found.")
 	}
 
 	for _, machinePool := range machinePools {

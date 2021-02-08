@@ -31,7 +31,10 @@ func FindAzureMachinePool(ctx context.Context, client ctrl.Client, azureMachineP
 	return azureMachinePool, nil
 }
 
-func FindAzureMachinePoolsForCluster(ctx context.Context, client ctrl.Client, clusterID string) ([]capzexp.AzureMachinePool, error) {
+// FindNonTestingAzureMachinePoolsForCluster returns list of `AzureMachinePool` belonging to the
+// specified cluster ID.
+// It filters out potential `AzureMachinePool` created by other e2e tests.
+func FindNonTestingAzureMachinePoolsForCluster(ctx context.Context, client ctrl.Client, clusterID string) ([]capzexp.AzureMachinePool, error) {
 	var azureMachinePools []capzexp.AzureMachinePool
 	{
 		var azureMachinePoolList capzexp.AzureMachinePoolList
@@ -40,7 +43,14 @@ func FindAzureMachinePoolsForCluster(ctx context.Context, client ctrl.Client, cl
 			return nil, microerror.Mask(err)
 		}
 
-		azureMachinePools = azureMachinePoolList.Items
+		for _, azureMachinePool := range azureMachinePoolList.Items {
+			_, isE2E := azureMachinePool.Labels[E2ENodepool]
+			if isE2E {
+				continue
+			}
+
+			azureMachinePools = append(azureMachinePools, azureMachinePool)
+		}
 	}
 
 	return azureMachinePools, nil
