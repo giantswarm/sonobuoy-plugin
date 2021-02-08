@@ -7,12 +7,14 @@ import (
 	"testing"
 
 	"github.com/giantswarm/apiextensions/v3/pkg/annotation"
+	"github.com/giantswarm/apiextensions/v3/pkg/apis/core/v1alpha1"
 	"github.com/giantswarm/apiextensions/v3/pkg/label"
 	"github.com/giantswarm/conditions/pkg/conditions"
 	"github.com/giantswarm/microerror"
 	"github.com/giantswarm/micrologger"
 	capi "sigs.k8s.io/cluster-api/api/v1alpha3"
 	capiconditions "sigs.k8s.io/cluster-api/util/conditions"
+	ctrl "sigs.k8s.io/controller-runtime/pkg/client"
 
 	"github.com/giantswarm/sonobuoy-plugin/v5/pkg/assert"
 	"github.com/giantswarm/sonobuoy-plugin/v5/pkg/capiutil"
@@ -92,6 +94,12 @@ func Test_MachinePoolCR(t *testing.T) {
 		// Check if 'cluster.k8s.io/cluster-api-autoscaler-node-group-max-size' annotation is set
 		assert.AnnotationIsSet(t, &mp, annotation.NodePoolMaxSize)
 
+		// Check that corresponding Spark CR exists
+		_, err = findSpark(ctx, cpCtrlClient, clusterID, mp.Name)
+		if err != nil {
+			t.Fatalf("error finding Spark %s: %s", mp.Name, microerror.JSON(err))
+		}
+
 		//
 		// Wait for main conditions checking the remaining parts of the resource:
 		//   Ready     == True
@@ -166,4 +174,28 @@ func Test_MachinePoolCR(t *testing.T) {
 			t.Fatalf("MachinePool ReplicasReady condition is not True")
 		}
 	}
+}
+
+func findSpark(ctx context.Context, client ctrl.Client, clusterID, machinePoolID string) (*v1alpha1.Spark, error) {
+	var spark *v1alpha1.Spark
+	{
+		var sparkList v1alpha1.SparkList
+		err := client.List(ctx, &sparkList, ctrl.MatchingLabels{label.Cluster: clusterID})
+		if err != nil {
+			return nil, microerror.Mask(err)
+		}
+
+		for _, sparkItem := range sparkList.Items {
+			if sparkItem.Name == machinePoolID {
+				spark = &sparkItem
+				break
+			}
+		}
+
+		if spark == nil {
+			return nil, microerror.Maskf(notFoundError, "can't find Spark with ID %q", machinePoolID)
+		}
+	}
+
+	return spark, nil
 }
