@@ -57,7 +57,7 @@ func Test_Autoscaler(t *testing.T) {
 
 	var machinePoolName string
 	{
-		machinePools, err := capiutil.FindMachinePoolsForCluster(ctx, cpCtrlClient, clusterID)
+		machinePools, err := capiutil.FindNonTestingMachinePoolsForCluster(ctx, cpCtrlClient, clusterID)
 		if err != nil {
 			t.Fatalf("error finding MachinePools for cluster %q: %s", clusterID, microerror.JSON(err))
 		}

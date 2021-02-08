@@ -31,10 +31,10 @@ func FindAzureMachinePool(ctx context.Context, client ctrl.Client, azureMachineP
 	return azureMachinePool, nil
 }
 
-// FindAzureMachinePoolsForCluster returns list of `AzureMachinePool` belonging to the
+// FindNonTestingAzureMachinePoolsForCluster returns list of `AzureMachinePool` belonging to the
 // specified cluster ID.
 // It filters out potential `AzureMachinePool` created by other e2e tests.
-func FindAzureMachinePoolsForCluster(ctx context.Context, client ctrl.Client, clusterID string) ([]capzexp.AzureMachinePool, error) {
+func FindNonTestingAzureMachinePoolsForCluster(ctx context.Context, client ctrl.Client, clusterID string) ([]capzexp.AzureMachinePool, error) {
 	var azureMachinePools []capzexp.AzureMachinePool
 	{
 		var azureMachinePoolList capzexp.AzureMachinePoolList

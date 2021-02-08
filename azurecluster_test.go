@@ -107,7 +107,7 @@ func Test_AzureClusterCR(t *testing.T) {
 	}
 
 	// Check subnets, first we get MachinePools, as we need one subnet per node pool
-	machinePools, err := capiutil.FindMachinePoolsForCluster(ctx, cpCtrlClient, clusterID)
+	machinePools, err := capiutil.FindNonTestingMachinePoolsForCluster(ctx, cpCtrlClient, clusterID)
 	if err != nil {
 		t.Fatalf("error finding MachinePools for cluster %q: %s", clusterID, microerror.JSON(err))
 	}

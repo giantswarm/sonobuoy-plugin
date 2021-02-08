@@ -31,10 +31,10 @@ func FindMachinePool(ctx context.Context, client ctrl.Client, machinePoolID stri
 	return machinePool, nil
 }
 
-// FindMachinePoolsForCluster returns list of `MachinePool` belonging to the
+// FindNonTestingMachinePoolsForCluster returns list of `MachinePool` belonging to the
 // specified cluster ID.
 // It filters out potential `MachinePool` created by other e2e tests.
-func FindMachinePoolsForCluster(ctx context.Context, client ctrl.Client, clusterID string) ([]capiexp.MachinePool, error) {
+func FindNonTestingMachinePoolsForCluster(ctx context.Context, client ctrl.Client, clusterID string) ([]capiexp.MachinePool, error) {
 	var machinePools []capiexp.MachinePool
 	{
 		var machinePoolList capiexp.MachinePoolList

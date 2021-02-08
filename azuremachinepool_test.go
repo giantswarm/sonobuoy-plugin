@@ -52,7 +52,7 @@ func Test_AzureMachinePoolCR(t *testing.T) {
 
 	cluster := clusterGetter(clusterID).(*capi.Cluster)
 
-	azureMachinePools, err := capiutil.FindAzureMachinePoolsForCluster(ctx, cpCtrlClient, clusterID)
+	azureMachinePools, err := capiutil.FindNonTestingAzureMachinePoolsForCluster(ctx, cpCtrlClient, clusterID)
 	if err != nil {
 		t.Fatalf("error finding MachinePools for cluster %q: %s", clusterID, microerror.JSON(err))
 	}
