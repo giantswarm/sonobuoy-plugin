@@ -180,7 +180,7 @@ func findSpark(ctx context.Context, client ctrl.Client, clusterID, machinePoolID
 	var spark *v1alpha1.Spark
 	{
 		var sparkList v1alpha1.SparkList
-		err := client.List(ctx, &sparkList, ctrl.MatchingLabels{label.Cluster: clusterID})
+		err := client.List(ctx, &sparkList, ctrl.MatchingLabels{capi.ClusterLabelName: clusterID})
 		if err != nil {
 			return nil, microerror.Mask(err)
 		}
