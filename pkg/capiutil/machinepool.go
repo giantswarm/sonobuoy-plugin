@@ -37,13 +37,12 @@ func FindMachinePool(ctx context.Context, client ctrl.Client, machinePoolID stri
 func FindNonTestingMachinePoolsForCluster(ctx context.Context, client ctrl.Client, clusterID string) ([]capiexp.MachinePool, error) {
 	var machinePools []capiexp.MachinePool
 	{
-		var machinePoolList capiexp.MachinePoolList
-		err := client.List(ctx, &machinePoolList, ctrl.MatchingLabels{capi.ClusterLabelName: clusterID})
+		machinePoolList, err := FindAllMachinePoolsForCluster(ctx, client, clusterID)
 		if err != nil {
 			return nil, microerror.Mask(err)
 		}
 
-		for _, machinePool := range machinePoolList.Items {
+		for _, machinePool := range machinePoolList {
 			_, isE2E := machinePool.Labels[E2ENodepool]
 			if isE2E {
 				continue
@@ -54,4 +53,16 @@ func FindNonTestingMachinePoolsForCluster(ctx context.Context, client ctrl.Clien
 	}
 
 	return machinePools, nil
+}
+
+// FindAllMachinePoolsForCluster returns list of `MachinePool` belonging to the
+// specified cluster ID.
+func FindAllMachinePoolsForCluster(ctx context.Context, client ctrl.Client, clusterID string) ([]capiexp.MachinePool, error) {
+	var machinePoolList capiexp.MachinePoolList
+	err := client.List(ctx, &machinePoolList, ctrl.MatchingLabels{capi.ClusterLabelName: clusterID})
+	if err != nil {
+		return nil, microerror.Mask(err)
+	}
+
+	return machinePoolList.Items, nil
 }
