@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"github.com/giantswarm/apiextensions/v3/pkg/label"
+	"github.com/giantswarm/backoff"
 	"github.com/giantswarm/microerror"
 	"github.com/giantswarm/micrologger"
 	capz "sigs.k8s.io/cluster-api-provider-azure/api/v1alpha3"
@@ -107,7 +108,35 @@ func Test_AzureClusterCR(t *testing.T) {
 	}
 
 	// Check subnets, first we get MachinePools, as we need one subnet per node pool
-	machinePools, err := capiutil.FindNonTestingMachinePoolsForCluster(ctx, cpCtrlClient, clusterID)
+	o := func() error {
+		azureCluster := azureClusterGetter(clusterID).(*capz.AzureCluster)
+
+		machinePools, err := capiutil.FindAllMachinePoolsForCluster(ctx, cpCtrlClient, clusterID)
+		if err != nil {
+			return microerror.Mask(err)
+		}
+
+		if len(azureCluster.Spec.NetworkSpec.Subnets) != len(machinePools) {
+			return microerror.Maskf(
+				unexpectedValueError,
+				"AzureCluster '%s/%s': expected %d subnets in Spec.NetworkSpec.Subnets (to match number of MachinePools), but got %d instead",
+				azureCluster.Namespace,
+				azureCluster.Name,
+				len(machinePools),
+				len(azureCluster.Spec.NetworkSpec.Subnets))
+		}
+
+		return nil
+	}
+
+	b := backoff.NewExponential(backoff.MediumMaxWait, backoff.LongMaxInterval)
+	n := backoff.NewNotifier(logger, ctx)
+	err = backoff.RetryNotify(o, b, n)
+	if err != nil {
+		t.Fatalf("error while waiting for number of subnets in AzureCluster to match number of node pools")
+	}
+
+	machinePools, err := capiutil.FindAllMachinePoolsForCluster(ctx, cpCtrlClient, clusterID)
 	if err != nil {
 		t.Fatalf("error finding MachinePools for cluster %q: %s", clusterID, microerror.JSON(err))
 	}
@@ -117,15 +146,6 @@ func Test_AzureClusterCR(t *testing.T) {
 	})
 
 	subnets := azureCluster.Spec.NetworkSpec.Subnets
-
-	// Check number of allocated subnets
-	if len(subnets) != len(machinePools) {
-		t.Fatalf("AzureCluster '%s/%s': expected %d subnets in Spec.NetworkSpec.Subnets (to match number of MachinePools), but got %d instead",
-			azureCluster.Namespace,
-			azureCluster.Name,
-			len(machinePools),
-			len(subnets))
-	}
 
 	sort.Slice(subnets, func(i int, j int) bool {
 		return subnets[i].Name < subnets[j].Name

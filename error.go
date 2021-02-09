@@ -16,3 +16,12 @@ var notFoundError = &microerror.Error{
 func IsNotFound(err error) bool {
 	return microerror.Cause(err) == notFoundError
 }
+
+var unexpectedValueError = &microerror.Error{
+	Kind: "unexpectedValueError",
+}
+
+// IsUnexpectedValueError asserts unexpectedValueError.
+func IsUnexpectedValueError(err error) bool {
+	return microerror.Cause(err) == unexpectedValueError
+}

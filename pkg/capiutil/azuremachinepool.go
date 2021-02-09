@@ -37,13 +37,12 @@ func FindAzureMachinePool(ctx context.Context, client ctrl.Client, azureMachineP
 func FindNonTestingAzureMachinePoolsForCluster(ctx context.Context, client ctrl.Client, clusterID string) ([]capzexp.AzureMachinePool, error) {
 	var azureMachinePools []capzexp.AzureMachinePool
 	{
-		var azureMachinePoolList capzexp.AzureMachinePoolList
-		err := client.List(ctx, &azureMachinePoolList, ctrl.MatchingLabels{capi.ClusterLabelName: clusterID})
+		azureMachinePoolList, err := FindAllAzureMachinePoolsForCluster(ctx, client, clusterID)
 		if err != nil {
 			return nil, microerror.Mask(err)
 		}
 
-		for _, azureMachinePool := range azureMachinePoolList.Items {
+		for _, azureMachinePool := range azureMachinePoolList {
 			_, isE2E := azureMachinePool.Labels[E2ENodepool]
 			if isE2E {
 				continue
@@ -54,4 +53,16 @@ func FindNonTestingAzureMachinePoolsForCluster(ctx context.Context, client ctrl.
 	}
 
 	return azureMachinePools, nil
+}
+
+// FindAllAzureMachinePoolsForCluster returns list of `AzureMachinePool` belonging to the
+// specified cluster ID.
+func FindAllAzureMachinePoolsForCluster(ctx context.Context, client ctrl.Client, clusterID string) ([]capzexp.AzureMachinePool, error) {
+	var azureMachinePoolList capzexp.AzureMachinePoolList
+	err := client.List(ctx, &azureMachinePoolList, ctrl.MatchingLabels{capi.ClusterLabelName: clusterID})
+	if err != nil {
+		return nil, microerror.Mask(err)
+	}
+
+	return azureMachinePoolList.Items, nil
 }
