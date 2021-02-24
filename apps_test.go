@@ -102,7 +102,7 @@ func Test_Apps(t *testing.T) {
 
 			deployedApp, ok := existingApps[app.Name]
 			if !ok {
-				return microerror.Maskf(appNotReadyError, "App %s was not found.", app.Name)
+				return microerror.Maskf(appNotReadyError, "App %#q was not found on the namespace %#q.", app.Name, clusterID)
 			}
 
 			if deployedApp.Status.Version != app.Version {
