@@ -6,7 +6,7 @@ import (
 
 	"github.com/Azure/go-autorest/autorest/to"
 	"github.com/giantswarm/apiextensions/v3/pkg/annotation"
-	"github.com/giantswarm/apiextensions/v3/pkg/apis/core/v1alpha1"
+	corev1alpha1 "github.com/giantswarm/apiextensions/v3/pkg/apis/core/v1alpha1"
 	"github.com/giantswarm/apiextensions/v3/pkg/label"
 	"github.com/giantswarm/microerror"
 	corev1 "k8s.io/api/core/v1"
@@ -57,12 +57,12 @@ func (p *AzureProviderSupport) CreateNodePool(ctx context.Context, client ctrl.C
 		return nil, microerror.Mask(err)
 	}
 
-	mp, err := p.createMachinePool(ctx, client, cluster, azureMP, azs)
+	bootstrap, err := p.createSpark(ctx, client, cluster, azureMP)
 	if err != nil {
 		return nil, microerror.Mask(err)
 	}
 
-	_, err = p.createSpark(ctx, client, cluster, azureMP)
+	mp, err := p.createMachinePool(ctx, client, cluster, azureMP, bootstrap, azs)
 	if err != nil {
 		return nil, microerror.Mask(err)
 	}
@@ -89,7 +89,7 @@ func (p *AzureProviderSupport) GetNodePoolAZs(ctx context.Context, clusterID, no
 	return zones, nil
 }
 
-func (p *AzureProviderSupport) createMachinePool(ctx context.Context, client ctrl.Client, cluster *capi.Cluster, azureMachinePool *expcapz.AzureMachinePool, azs []string) (*expcapi.MachinePool, error) {
+func (p *AzureProviderSupport) createMachinePool(ctx context.Context, client ctrl.Client, cluster *capi.Cluster, azureMachinePool *expcapz.AzureMachinePool, spark *corev1alpha1.Spark, azs []string) (*expcapi.MachinePool, error) {
 	var infrastructureCRRef *corev1.ObjectReference
 	{
 		s := runtime.NewScheme()
@@ -101,6 +101,20 @@ func (p *AzureProviderSupport) createMachinePool(ctx context.Context, client ctr
 		infrastructureCRRef, err = reference.GetReference(s, azureMachinePool)
 		if err != nil {
 			panic(fmt.Sprintf("cannot create reference to infrastructure CR: %q", err))
+		}
+	}
+
+	var bootstrapCRRef *corev1.ObjectReference
+	{
+		s := runtime.NewScheme()
+		err := corev1alpha1.AddToScheme(s)
+		if err != nil {
+			panic(fmt.Sprintf("corev1alpha.AddToScheme: %+v", err))
+		}
+
+		bootstrapCRRef, err = reference.GetReference(s, spark)
+		if err != nil {
+			panic(fmt.Sprintf("cannot create reference to bootstrap CR: %q", err))
 		}
 	}
 
@@ -129,6 +143,9 @@ func (p *AzureProviderSupport) createMachinePool(ctx context.Context, client ctr
 			FailureDomains: azs,
 			Template: capi.MachineTemplateSpec{
 				Spec: capi.MachineSpec{
+					Bootstrap: capi.Bootstrap{
+						ConfigRef: bootstrapCRRef,
+					},
 					ClusterName:       cluster.Name,
 					InfrastructureRef: *infrastructureCRRef,
 				},
@@ -199,8 +216,8 @@ func (p *AzureProviderSupport) createAzureMachinePool(ctx context.Context, clien
 	return azureMachinePool, nil
 }
 
-func (p *AzureProviderSupport) createSpark(ctx context.Context, client ctrl.Client, cluster *capi.Cluster, azureMachinePool *expcapz.AzureMachinePool) (*v1alpha1.Spark, error) {
-	spark := &v1alpha1.Spark{
+func (p *AzureProviderSupport) createSpark(ctx context.Context, client ctrl.Client, cluster *capi.Cluster, azureMachinePool *expcapz.AzureMachinePool) (*corev1alpha1.Spark, error) {
+	spark := &corev1alpha1.Spark{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "Spark",
 			APIVersion: "core.giantswarm.io/v1alpha1",
@@ -215,7 +232,7 @@ func (p *AzureProviderSupport) createSpark(ctx context.Context, client ctrl.Clie
 				capiutil.E2ENodepool:  "true",
 			},
 		},
-		Spec: v1alpha1.SparkSpec{},
+		Spec: corev1alpha1.SparkSpec{},
 	}
 
 	err := client.Create(ctx, spark)
