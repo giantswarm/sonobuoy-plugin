@@ -17,6 +17,7 @@ import (
 	capiv1alpha3 "sigs.k8s.io/cluster-api/api/v1alpha3"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
+	"github.com/giantswarm/sonobuoy-plugin/v5/pkg/capiutil"
 	"github.com/giantswarm/sonobuoy-plugin/v5/pkg/ctrlclient"
 )
 
@@ -46,19 +47,12 @@ func Test_Apps(t *testing.T) {
 	}
 
 	// Get Cluster.
-	var cluster capiv1alpha3.Cluster
+	var cluster *capiv1alpha3.Cluster
 	{
-		clusters := &capiv1alpha3.ClusterList{}
-		err = cpCtrlClient.List(ctx, clusters, client.MatchingLabels{label.Cluster: clusterID})
+		cluster, err = capiutil.FindCluster(ctx, cpCtrlClient, clusterID)
 		if err != nil {
 			t.Fatal(err)
 		}
-
-		if len(clusters.Items) != 1 {
-			t.Fatalf("Expected 1 Cluster CR with %s = %s, %d found.", label.Cluster, clusterID, len(clusters.Items))
-		}
-
-		cluster = clusters.Items[0]
 	}
 
 	// Get release.
