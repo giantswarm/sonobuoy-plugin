@@ -45,10 +45,7 @@ func Test_Apps(t *testing.T) {
 		t.Fatal("missing CLUSTER_ID environment variable")
 	}
 
-	logger.Debugf(ctx, "Testing that all apps declared in the Release CR are deployed.")
-
 	// Get Cluster.
-	logger.Debugf(ctx, "Getting cluster CR.")
 	var cluster capiv1alpha3.Cluster
 	{
 		clusters := &capiv1alpha3.ClusterList{}
@@ -62,13 +59,11 @@ func Test_Apps(t *testing.T) {
 		}
 
 		cluster = clusters.Items[0]
-		logger.Debugf(ctx, "Got cluster CR.")
 	}
 
 	// Get release.
 	release := &v1alpha1.Release{}
 	{
-		logger.Debugf(ctx, "Getting release CR.")
 		releaseName := cluster.GetLabels()[label.ReleaseVersion]
 		if releaseName == "" {
 			t.Fatalf("Can't get value for label %s from Cluster CR %s", label.ReleaseVersion, cluster.Name)
@@ -82,7 +77,6 @@ func Test_Apps(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		logger.Debugf(ctx, "Got release CR.")
 	}
 
 	o := func() error {
@@ -98,8 +92,6 @@ func Test_Apps(t *testing.T) {
 		}
 
 		for _, app := range release.Spec.Apps {
-			logger.Debugf(ctx, "Checking app %s with version %s.", app.Name, app.Version)
-
 			deployedApp, ok := existingApps[app.Name]
 			if !ok {
 				return microerror.Maskf(appNotReadyError, "App %#q was not found on the namespace %#q.", app.Name, clusterID)
