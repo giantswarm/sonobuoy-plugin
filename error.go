@@ -4,6 +4,10 @@ import (
 	"github.com/giantswarm/microerror"
 )
 
+var appNotReadyError = &microerror.Error{
+	Kind: "appNotReadyError",
+}
+
 var executionFailedError = &microerror.Error{
 	Kind: "executionFailedError",
 }
