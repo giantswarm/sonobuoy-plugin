@@ -4,7 +4,6 @@ import (
 	"context"
 	"os"
 	"sort"
-	"strings"
 	"testing"
 
 	"github.com/giantswarm/apiextensions/v3/pkg/label"
@@ -33,25 +32,14 @@ func Test_AzureClusterCR(t *testing.T) {
 
 	logger := NewTestLogger(regularLogger, t)
 
-	restConfig, err := ctrlclient.GetRestConfig()
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	if !strings.Contains(restConfig.Host, "azure") {
-		t.Log("This is not azure cluster, skipping")
-		t.SkipNow()
-		return
+	clusterID, exists := os.LookupEnv("CLUSTER_ID")
+	if !exists {
+		t.Fatal("missing CLUSTER_ID environment variable")
 	}
 
 	cpCtrlClient, err := ctrlclient.CreateCPCtrlClient()
 	if err != nil {
 		t.Fatalf("error creating CP k8s client: %v", err)
-	}
-
-	clusterID, exists := os.LookupEnv("CLUSTER_ID")
-	if !exists {
-		t.Fatal("missing CLUSTER_ID environment variable")
 	}
 
 	cluster, err := capiutil.FindCluster(ctx, cpCtrlClient, clusterID)
