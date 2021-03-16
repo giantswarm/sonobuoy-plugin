@@ -3,6 +3,7 @@ package sonobuoy_plugin
 import (
 	"context"
 	"os"
+	"strings"
 	"testing"
 
 	"github.com/giantswarm/apiextensions/v3/pkg/label"
@@ -30,6 +31,17 @@ func Test_AzureMachinePoolCR(t *testing.T) {
 	}
 
 	logger := NewTestLogger(regularLogger, t)
+
+	restConfig, err := ctrlclient.GetRestConfig()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if !strings.Contains(restConfig.Host, "azure") {
+		t.Log("This is not azure cluster, skipping")
+		t.SkipNow()
+		return
+	}
 
 	clusterID, exists := os.LookupEnv("CLUSTER_ID")
 	if !exists {
