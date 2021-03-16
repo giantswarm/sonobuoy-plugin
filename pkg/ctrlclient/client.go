@@ -23,20 +23,6 @@ func GetCPKubeConfig() ([]byte, error) {
 	return []byte(kubeConfig), nil
 }
 
-func GetRestConfig() (*rest.Config, error) {
-	kubeConfig, err := GetCPKubeConfig()
-	if err != nil {
-		return nil, microerror.Mask(err)
-	}
-
-	restConfig, err := clientcmd.RESTConfigFromKubeConfig(kubeConfig)
-	if err != nil {
-		return nil, microerror.Mask(err)
-	}
-
-	return restConfig, nil
-}
-
 func GetTCKubeConfig() ([]byte, error) {
 	kubeConfig, exists := os.LookupEnv(TenantClusterKubeconfigContents)
 	if !exists {
@@ -61,7 +47,12 @@ func CreateTCCtrlClient() (client.Client, error) {
 }
 
 func CreateCPCtrlClient() (client.Client, error) {
-	restConfig, err := GetRestConfig()
+	kubeConfig, err := GetCPKubeConfig()
+	if err != nil {
+		return nil, microerror.Mask(err)
+	}
+
+	restConfig, err := clientcmd.RESTConfigFromKubeConfig(kubeConfig)
 	if err != nil {
 		return nil, microerror.Mask(err)
 	}
