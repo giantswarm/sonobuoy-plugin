@@ -31,5 +31,5 @@ func GetProviderSupport(ctx context.Context, client ctrl.Client, cluster *capi.C
 		return p, nil
 	}
 
-	return nil, microerror.Maskf(executionFailedError, "unsupported provider value in $%s: %q", ProviderEnvVarName, provider)
+	return nil, microerror.Maskf(executionFailedError, "unsupported provider value in $%s: %q", ProviderEnvVarName, GetProvider())
 }
