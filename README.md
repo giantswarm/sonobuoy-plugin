@@ -19,7 +19,7 @@ We just need to do the same for the Tenant Cluster kubeconfig.
 Then we are ready to run the tests.
 
 ```bash
-sonobuoy run \                                                                                                                                                                         [giantswarm-godsmack:default]
+sonobuoy run \
     --kubeconfig "cp_kubeconfig.yaml" \
     --namespace "4zxet-sonobuoy" \
     --plugin https://raw.githubusercontent.com/giantswarm/sonobuoy-plugin/master/giantswarm-plugin.yaml \
@@ -33,7 +33,7 @@ sonobuoy run \                                                                  
 When this command finishes, we can see the results
 
 ```bash
-sonobuoy status
+sonobuoy status --namespace 4zxet-sonobuoy 
 ```
 
 Or retrieve the logs
