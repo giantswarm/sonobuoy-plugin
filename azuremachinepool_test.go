@@ -33,7 +33,7 @@ func Test_AzureMachinePoolCR(t *testing.T) {
 	logger := NewTestLogger(regularLogger, t)
 
 	if provider.GetProvider() != "azure" {
-		t.Log("can't run azure test in %#q cluster, skipping", provider.GetProvider())
+		t.Logf("can't run azure test in %#q cluster, skipping", provider.GetProvider())
 		t.SkipNow()
 		return
 	}
