@@ -14,10 +14,14 @@ const (
 	ProviderEnvVarName = "PROVIDER"
 )
 
-func GetProviderSupport(ctx context.Context, client ctrl.Client, cluster *capi.Cluster) (Support, error) {
+func GetProvider() string {
 	provider := os.Getenv(ProviderEnvVarName)
 
-	switch strings.TrimSpace(provider) {
+	return strings.TrimSpace(provider)
+}
+
+func GetProviderSupport(ctx context.Context, client ctrl.Client, cluster *capi.Cluster) (Support, error) {
+	switch GetProvider() {
 	case "azure":
 		p, err := NewAzureProviderSupport(ctx, client, cluster)
 		if err != nil {
@@ -27,5 +31,5 @@ func GetProviderSupport(ctx context.Context, client ctrl.Client, cluster *capi.C
 		return p, nil
 	}
 
-	return nil, microerror.Maskf(executionFailedError, "unsupported provider value in $%s: %q", ProviderEnvVarName, provider)
+	return nil, microerror.Maskf(executionFailedError, "unsupported provider value in $%s: %q", ProviderEnvVarName, GetProvider())
 }

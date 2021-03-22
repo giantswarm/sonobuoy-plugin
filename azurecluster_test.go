@@ -17,6 +17,7 @@ import (
 	"github.com/giantswarm/sonobuoy-plugin/v5/pkg/assert"
 	"github.com/giantswarm/sonobuoy-plugin/v5/pkg/capiutil"
 	"github.com/giantswarm/sonobuoy-plugin/v5/pkg/ctrlclient"
+	"github.com/giantswarm/sonobuoy-plugin/v5/pkg/provider"
 )
 
 func Test_AzureClusterCR(t *testing.T) {
@@ -31,6 +32,12 @@ func Test_AzureClusterCR(t *testing.T) {
 	}
 
 	logger := NewTestLogger(regularLogger, t)
+
+	if provider.GetProvider() != "azure" {
+		t.Logf("can't run azure test in %#q cluster, skipping", provider.GetProvider())
+		t.SkipNow()
+		return
+	}
 
 	clusterID, exists := os.LookupEnv("CLUSTER_ID")
 	if !exists {
