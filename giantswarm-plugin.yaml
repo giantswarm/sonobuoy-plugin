@@ -12,7 +12,7 @@ spec:
     - name: CLUSTER_ID
     - name: PROVIDER
     - name: TEST_DELETION
-    - name: TEST_FOCUS
+    - name: E2E_FOCUS
   resources: { }
   volumeMounts:
     - mountPath: /tmp/results
