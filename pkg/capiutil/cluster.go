@@ -4,6 +4,8 @@ import (
 	"context"
 
 	"github.com/giantswarm/microerror"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	capi "sigs.k8s.io/cluster-api/api/v1alpha3"
 	ctrl "sigs.k8s.io/controller-runtime/pkg/client"
 )
@@ -11,8 +13,18 @@ import (
 func FindCluster(ctx context.Context, client ctrl.Client, clusterID string) (*capi.Cluster, error) {
 	var cluster *capi.Cluster
 	{
+		err := client.Get(ctx, ctrl.ObjectKey{Namespace: v1.NamespaceDefault, Name: clusterID}, cluster)
+		if apierrors.IsNotFound(err) {
+			// no cluster CR with a matching name, try to find it with labels
+			// no-op
+		} else if err != nil {
+			return nil, microerror.Mask(err)
+		} else {
+			return cluster, nil
+		}
+
 		var clusterList capi.ClusterList
-		err := client.List(ctx, &clusterList, ctrl.MatchingLabels{capi.ClusterLabelName: clusterID})
+		err = client.List(ctx, &clusterList, ctrl.MatchingLabels{capi.ClusterLabelName: clusterID})
 		if err != nil {
 			return nil, microerror.Mask(err)
 		}
