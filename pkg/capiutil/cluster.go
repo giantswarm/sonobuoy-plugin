@@ -11,7 +11,7 @@ import (
 )
 
 func FindCluster(ctx context.Context, client ctrl.Client, clusterID string) (*capi.Cluster, error) {
-	var cluster *capi.Cluster
+	cluster := &capi.Cluster{}
 	{
 		err := client.Get(ctx, ctrl.ObjectKey{Namespace: v1.NamespaceDefault, Name: clusterID}, cluster)
 		if apierrors.IsNotFound(err) {
