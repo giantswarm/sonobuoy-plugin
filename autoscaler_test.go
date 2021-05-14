@@ -112,7 +112,7 @@ func Test_Autoscaler(t *testing.T) {
 
 		return nil
 	}
-	b := backoff.NewConstant(5*time.Minute, 10*time.Second)
+	b := backoff.NewConstant(backoff.LongMaxWait, 10*time.Second)
 	n := backoff.NewNotifier(logger, ctx)
 	err = backoff.RetryNotify(o, b, n)
 	if err != nil {
