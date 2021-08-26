@@ -4,6 +4,7 @@ import (
 	"context"
 	"os"
 	"testing"
+	"time"
 
 	"github.com/giantswarm/backoff"
 	"github.com/giantswarm/microerror"
@@ -107,7 +108,7 @@ func Test_AzureDelete(t *testing.T) {
 
 			return nil
 		}
-		b := backoff.NewConstant(backoff.LongMaxWait, backoff.LongMaxInterval)
+		b := backoff.NewConstant(60*time.Minute, backoff.LongMaxInterval)
 		n := backoff.NewNotifier(logger, ctx)
 		err = backoff.RetryNotify(o, b, n)
 		if err != nil {
