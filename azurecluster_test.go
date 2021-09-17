@@ -17,6 +17,7 @@ import (
 	"github.com/giantswarm/sonobuoy-plugin/v5/pkg/assert"
 	"github.com/giantswarm/sonobuoy-plugin/v5/pkg/capiutil"
 	"github.com/giantswarm/sonobuoy-plugin/v5/pkg/ctrlclient"
+	"github.com/giantswarm/sonobuoy-plugin/v5/pkg/key"
 	"github.com/giantswarm/sonobuoy-plugin/v5/pkg/provider"
 )
 
@@ -52,6 +53,13 @@ func Test_AzureClusterCR(t *testing.T) {
 	cluster, err := capiutil.FindCluster(ctx, cpCtrlClient, clusterID)
 	if err != nil {
 		t.Fatalf("error finding cluster: %s", microerror.JSON(err))
+	}
+
+	// This test only applies to GS clusters.
+	release := cluster.Labels[label.ReleaseVersion]
+	if key.IsCapiRelease(release) {
+		logger.LogCtx(ctx, "level", "info", "message", "Test_AzureClusterCR in not used for CAPZ clusters")
+		return
 	}
 
 	clusterGetter := func(clusterName string) capiutil.TestedObject {
@@ -118,7 +126,7 @@ func Test_AzureClusterCR(t *testing.T) {
 	o := func() error {
 		azureCluster := azureClusterGetter(clusterID).(*capz.AzureCluster)
 
-		machinePools, err := capiutil.FindAllMachinePoolsForCluster(ctx, cpCtrlClient, clusterID)
+		machinePools, err := capiutil.FindAllExpMachinePoolsForCluster(ctx, cpCtrlClient, clusterID)
 		if err != nil {
 			return microerror.Mask(err)
 		}
@@ -143,7 +151,7 @@ func Test_AzureClusterCR(t *testing.T) {
 		t.Fatalf("error while waiting for number of subnets in AzureCluster to match number of node pools")
 	}
 
-	machinePools, err := capiutil.FindAllMachinePoolsForCluster(ctx, cpCtrlClient, clusterID)
+	machinePools, err := capiutil.FindAllExpMachinePoolsForCluster(ctx, cpCtrlClient, clusterID)
 	if err != nil {
 		t.Fatalf("error finding MachinePools for cluster %q: %s", clusterID, microerror.JSON(err))
 	}

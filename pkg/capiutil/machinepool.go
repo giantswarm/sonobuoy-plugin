@@ -5,6 +5,7 @@ import (
 
 	"github.com/giantswarm/apiextensions/v3/pkg/label"
 	"github.com/giantswarm/microerror"
+	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	capi "sigs.k8s.io/cluster-api/api/v1alpha3"
 	capiexp "sigs.k8s.io/cluster-api/exp/api/v1alpha3"
 	ctrl "sigs.k8s.io/controller-runtime/pkg/client"
@@ -34,10 +35,10 @@ func FindMachinePool(ctx context.Context, client ctrl.Client, machinePoolID stri
 // FindNonTestingMachinePoolsForCluster returns list of `MachinePool` belonging to the
 // specified cluster ID.
 // It filters out potential `MachinePool` created by other e2e tests.
-func FindNonTestingMachinePoolsForCluster(ctx context.Context, client ctrl.Client, clusterID string) ([]capiexp.MachinePool, error) {
-	var machinePools []capiexp.MachinePool
+func FindNonTestingMachinePoolsForCluster(ctx context.Context, client ctrl.Client, clusterID string) ([]v1.ObjectMeta, error) {
+	var machinePools []v1.ObjectMeta
 	{
-		machinePoolList, err := FindAllMachinePoolsForCluster(ctx, client, clusterID)
+		machinePoolList, err := FindAllExpMachinePoolsForCluster(ctx, client, clusterID)
 		if err != nil {
 			return nil, microerror.Mask(err)
 		}
@@ -48,16 +49,16 @@ func FindNonTestingMachinePoolsForCluster(ctx context.Context, client ctrl.Clien
 				continue
 			}
 
-			machinePools = append(machinePools, machinePool)
+			machinePools = append(machinePools, machinePool.ObjectMeta)
 		}
 	}
 
 	return machinePools, nil
 }
 
-// FindAllMachinePoolsForCluster returns list of `MachinePool` belonging to the
+// FindAllExpMachinePoolsForCluster returns list of `MachinePool` belonging to the
 // specified cluster ID.
-func FindAllMachinePoolsForCluster(ctx context.Context, client ctrl.Client, clusterID string) ([]capiexp.MachinePool, error) {
+func FindAllExpMachinePoolsForCluster(ctx context.Context, client ctrl.Client, clusterID string) ([]capiexp.MachinePool, error) {
 	var machinePoolList capiexp.MachinePoolList
 	err := client.List(ctx, &machinePoolList, ctrl.MatchingLabels{capi.ClusterLabelName: clusterID})
 	if err != nil {

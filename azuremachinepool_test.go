@@ -16,6 +16,7 @@ import (
 	"github.com/giantswarm/sonobuoy-plugin/v5/pkg/assert"
 	"github.com/giantswarm/sonobuoy-plugin/v5/pkg/capiutil"
 	"github.com/giantswarm/sonobuoy-plugin/v5/pkg/ctrlclient"
+	"github.com/giantswarm/sonobuoy-plugin/v5/pkg/key"
 	"github.com/giantswarm/sonobuoy-plugin/v5/pkg/provider"
 )
 
@@ -58,6 +59,12 @@ func Test_AzureMachinePoolCR(t *testing.T) {
 	}
 
 	cluster := clusterGetter(clusterID).(*capi.Cluster)
+	// This test only applies to GS clusters.
+	release := cluster.Labels[label.ReleaseVersion]
+	if key.IsCapiRelease(release) {
+		logger.LogCtx(ctx, "level", "info", "message", "Test_AzureMachinePoolCR in not used for CAPZ clusters")
+		return
+	}
 
 	azureMachinePools, err := capiutil.FindNonTestingAzureMachinePoolsForCluster(ctx, cpCtrlClient, clusterID)
 	if err != nil {

@@ -16,6 +16,7 @@ import (
 	"github.com/giantswarm/sonobuoy-plugin/v5/pkg/assert"
 	"github.com/giantswarm/sonobuoy-plugin/v5/pkg/capiutil"
 	"github.com/giantswarm/sonobuoy-plugin/v5/pkg/ctrlclient"
+	"github.com/giantswarm/sonobuoy-plugin/v5/pkg/key"
 )
 
 func Test_ClusterCR(t *testing.T) {
@@ -51,6 +52,12 @@ func Test_ClusterCR(t *testing.T) {
 	}
 
 	cluster := clusterGetter(clusterID).(*capi.Cluster)
+	// This test only applies to GS clusters.
+	release := cluster.Labels[label.ReleaseVersion]
+	if key.IsCapiRelease(release) {
+		logger.LogCtx(ctx, "level", "info", "message", "Test_ClusterCR in not used for CAPZ clusters")
+		return
+	}
 
 	//
 	// Test metadata

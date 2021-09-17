@@ -19,6 +19,7 @@ import (
 	"github.com/giantswarm/sonobuoy-plugin/v5/pkg/assert"
 	"github.com/giantswarm/sonobuoy-plugin/v5/pkg/capiutil"
 	"github.com/giantswarm/sonobuoy-plugin/v5/pkg/ctrlclient"
+	"github.com/giantswarm/sonobuoy-plugin/v5/pkg/key"
 )
 
 func Test_MachinePoolCR(t *testing.T) {
@@ -55,6 +56,13 @@ func Test_MachinePoolCR(t *testing.T) {
 
 	cluster := clusterGetter(clusterID).(*capi.Cluster)
 
+	// This test only applies to GS clusters.
+	release := cluster.Labels[label.ReleaseVersion]
+	if key.IsCapiRelease(release) {
+		logger.LogCtx(ctx, "level", "info", "message", "Test_MachinePoolCR in not used for CAPZ clusters")
+		return
+	}
+
 	machinePoolGetter := func(machinePoolID string) capiutil.TestedObject {
 		machinePool, err := capiutil.FindMachinePool(ctx, cpCtrlClient, machinePoolID)
 		if err != nil {
@@ -86,21 +94,24 @@ func Test_MachinePoolCR(t *testing.T) {
 		// Check if 'release.giantswarm.io/version' label is set
 		assert.LabelIsSet(t, &mp, label.ReleaseVersion)
 
-		// Check if 'azure-operator.giantswarm.io/version' label is set
-		assert.LabelIsSet(t, &mp, label.AzureOperatorVersion)
+		release := mp.Labels[label.ReleaseVersion]
 
-		// Check if 'cluster.k8s.io/cluster-api-autoscaler-node-group-min-size' annotation is set
-		assert.AnnotationIsSet(t, &mp, annotation.NodePoolMinSize)
+		if !key.IsCapiRelease(release) {
+			// Check if 'azure-operator.giantswarm.io/version' label is set
+			assert.LabelIsSet(t, &mp, label.AzureOperatorVersion)
 
-		// Check if 'cluster.k8s.io/cluster-api-autoscaler-node-group-max-size' annotation is set
-		assert.AnnotationIsSet(t, &mp, annotation.NodePoolMaxSize)
+			// Check if 'cluster.k8s.io/cluster-api-autoscaler-node-group-min-size' annotation is set
+			assert.AnnotationIsSet(t, &mp, annotation.NodePoolMinSize)
 
-		// Check that corresponding Spark CR exists
-		_, err = findSpark(ctx, cpCtrlClient, clusterID, mp.Name)
-		if err != nil {
-			t.Fatalf("error finding Spark %s: %s", mp.Name, microerror.JSON(err))
+			// Check if 'cluster.k8s.io/cluster-api-autoscaler-node-group-max-size' annotation is set
+			assert.AnnotationIsSet(t, &mp, annotation.NodePoolMaxSize)
+
+			// Check that corresponding Spark CR exists
+			_, err = findSpark(ctx, cpCtrlClient, clusterID, mp.Name)
+			if err != nil {
+				t.Fatalf("error finding Spark %s: %s", mp.Name, microerror.JSON(err))
+			}
 		}
-
 		//
 		// Wait for main conditions checking the remaining parts of the resource:
 		//   Ready     == True
