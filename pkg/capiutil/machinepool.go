@@ -5,7 +5,6 @@ import (
 
 	"github.com/giantswarm/apiextensions/v3/pkg/label"
 	"github.com/giantswarm/microerror"
-	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	capi "sigs.k8s.io/cluster-api/api/v1alpha3"
 	capiexp "sigs.k8s.io/cluster-api/exp/api/v1alpha3"
 	ctrl "sigs.k8s.io/controller-runtime/pkg/client"
@@ -35,8 +34,8 @@ func FindMachinePool(ctx context.Context, client ctrl.Client, machinePoolID stri
 // FindNonTestingMachinePoolsForCluster returns list of `MachinePool` belonging to the
 // specified cluster ID.
 // It filters out potential `MachinePool` created by other e2e tests.
-func FindNonTestingMachinePoolsForCluster(ctx context.Context, client ctrl.Client, clusterID string) ([]v1.ObjectMeta, error) {
-	var machinePools []v1.ObjectMeta
+func FindNonTestingMachinePoolsForCluster(ctx context.Context, client ctrl.Client, clusterID string) ([]capiexp.MachinePool, error) {
+	var machinePools []capiexp.MachinePool
 	{
 		machinePoolList, err := FindAllExpMachinePoolsForCluster(ctx, client, clusterID)
 		if err != nil {
@@ -49,7 +48,7 @@ func FindNonTestingMachinePoolsForCluster(ctx context.Context, client ctrl.Clien
 				continue
 			}
 
-			machinePools = append(machinePools, machinePool.ObjectMeta)
+			machinePools = append(machinePools, machinePool)
 		}
 	}
 

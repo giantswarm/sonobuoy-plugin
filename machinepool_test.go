@@ -94,23 +94,19 @@ func Test_MachinePoolCR(t *testing.T) {
 		// Check if 'release.giantswarm.io/version' label is set
 		assert.LabelIsSet(t, &mp, label.ReleaseVersion)
 
-		release := mp.Labels[label.ReleaseVersion]
+		// Check if 'azure-operator.giantswarm.io/version' label is set
+		assert.LabelIsSet(t, &mp, label.AzureOperatorVersion)
 
-		if !key.IsCapiRelease(release) {
-			// Check if 'azure-operator.giantswarm.io/version' label is set
-			assert.LabelIsSet(t, &mp, label.AzureOperatorVersion)
+		// Check if 'cluster.k8s.io/cluster-api-autoscaler-node-group-min-size' annotation is set
+		assert.AnnotationIsSet(t, &mp, annotation.NodePoolMinSize)
 
-			// Check if 'cluster.k8s.io/cluster-api-autoscaler-node-group-min-size' annotation is set
-			assert.AnnotationIsSet(t, &mp, annotation.NodePoolMinSize)
+		// Check if 'cluster.k8s.io/cluster-api-autoscaler-node-group-max-size' annotation is set
+		assert.AnnotationIsSet(t, &mp, annotation.NodePoolMaxSize)
 
-			// Check if 'cluster.k8s.io/cluster-api-autoscaler-node-group-max-size' annotation is set
-			assert.AnnotationIsSet(t, &mp, annotation.NodePoolMaxSize)
-
-			// Check that corresponding Spark CR exists
-			_, err = findSpark(ctx, cpCtrlClient, clusterID, mp.Name)
-			if err != nil {
-				t.Fatalf("error finding Spark %s: %s", mp.Name, microerror.JSON(err))
-			}
+		// Check that corresponding Spark CR exists
+		_, err = findSpark(ctx, cpCtrlClient, clusterID, mp.Name)
+		if err != nil {
+			t.Fatalf("error finding Spark %s: %s", mp.Name, microerror.JSON(err))
 		}
 		//
 		// Wait for main conditions checking the remaining parts of the resource:

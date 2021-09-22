@@ -3,6 +3,7 @@ package sonobuoy_plugin
 import (
 	"context"
 	"errors"
+	"fmt"
 	"os"
 	"reflect"
 	"sort"
@@ -79,7 +80,7 @@ func Test_AvailabilityZones(t *testing.T) {
 
 			// Return error for retry until node pool nodes are Ready.
 			if !capiconditions.IsTrue(machinePool, capi.ReadyCondition) {
-				return errors.New("node pool is not ready yet")
+				return errors.New(fmt.Sprintf("node pool %q is not ready yet", machinePool.Name))
 			}
 
 			return nil
