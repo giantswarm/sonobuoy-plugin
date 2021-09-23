@@ -3,10 +3,8 @@ package sonobuoy_plugin
 import (
 	"context"
 	"os"
-	"sort"
 	"testing"
 
-	"github.com/giantswarm/apiextensions/v3/pkg/label"
 	"github.com/giantswarm/backoff"
 	"github.com/giantswarm/microerror"
 	"github.com/giantswarm/micrologger"
@@ -17,7 +15,6 @@ import (
 	"github.com/giantswarm/sonobuoy-plugin/v5/pkg/assert"
 	"github.com/giantswarm/sonobuoy-plugin/v5/pkg/capiutil"
 	"github.com/giantswarm/sonobuoy-plugin/v5/pkg/ctrlclient"
-	"github.com/giantswarm/sonobuoy-plugin/v5/pkg/key"
 	"github.com/giantswarm/sonobuoy-plugin/v5/pkg/provider"
 )
 
@@ -55,13 +52,6 @@ func Test_AzureClusterCR(t *testing.T) {
 		t.Fatalf("error finding cluster: %s", microerror.JSON(err))
 	}
 
-	// This test only applies to GS clusters.
-	release := cluster.Labels[label.ReleaseVersion]
-	if key.IsCapiRelease(release) {
-		logger.LogCtx(ctx, "level", "info", "message", "Test_AzureClusterCR in not used for CAPZ clusters")
-		return
-	}
-
 	clusterGetter := func(clusterName string) capiutil.TestedObject {
 		cluster, err := capiutil.FindCluster(ctx, cpCtrlClient, clusterName)
 		if err != nil {
@@ -89,20 +79,8 @@ func Test_AzureClusterCR(t *testing.T) {
 	// Check Metadata
 	//
 
-	// Check if 'release.giantswarm.io/version' label is set
-	assert.LabelIsSet(t, cluster, label.ReleaseVersion)
-
-	// Check if 'azure-operator.giantswarm.io/version' label is set
-	assert.LabelIsSet(t, cluster, label.AzureOperatorVersion)
-
 	// Wait for Ready condition to be True
 	capiutil.WaitForCondition(t, ctx, logger, azureCluster, capi.ReadyCondition, capiconditions.IsTrue, azureClusterGetter)
-
-	// Check that Cluster and AzureCluster desired release version matches
-	assert.LabelIsEqual(t, cluster, azureCluster, label.ReleaseVersion)
-
-	// Check that Cluster and AzureCluster azure-operator version matches
-	assert.LabelIsEqual(t, cluster, azureCluster, label.AzureOperatorVersion)
 
 	// Assert that AzureCluster owner reference is set to the specified Cluster
 	assert.ExpectedOwnerReferenceIsSet(t, azureCluster, cluster)
@@ -149,44 +127,6 @@ func Test_AzureClusterCR(t *testing.T) {
 	err = backoff.RetryNotify(o, b, n)
 	if err != nil {
 		t.Fatalf("error while waiting for number of subnets in AzureCluster to match number of node pools")
-	}
-
-	machinePools, err := capiutil.FindAllExpMachinePoolsForCluster(ctx, cpCtrlClient, clusterID)
-	if err != nil {
-		t.Fatalf("error finding MachinePools for cluster %q: %s", clusterID, microerror.JSON(err))
-	}
-
-	sort.Slice(machinePools, func(i int, j int) bool {
-		return machinePools[i].Name < machinePools[j].Name
-	})
-
-	subnets := azureCluster.Spec.NetworkSpec.Subnets
-
-	sort.Slice(subnets, func(i int, j int) bool {
-		return subnets[i].Name < subnets[j].Name
-	})
-
-	const expectedSubnetCIDRBlocks = 1
-	for i := range subnets {
-		// Check if subnet name matches MachinePool name
-		if subnets[i].Name != machinePools[i].Name {
-			t.Fatalf("AzureCluster '%s/%s': expected subnet name %q (in Spec.NetworkSpec.Subnets) to match MachinePool name %q",
-				azureCluster.Namespace,
-				azureCluster.Name,
-				subnets[i].Name,
-				machinePools[i].Name)
-		}
-
-		// Check if we have allocated correct number of CIDR blocks for the subnet
-		allocatedSubnetCIDRBlocks := len(subnets[i].CIDRBlocks)
-		if allocatedSubnetCIDRBlocks != expectedSubnetCIDRBlocks {
-			t.Fatalf("AzureCluster '%s/%s': expected %d CIDR block to be set in Spec.NetworkSpec.Subnets[%s], but found %d instead",
-				azureCluster.Namespace,
-				azureCluster.Name,
-				expectedSubnetCIDRBlocks,
-				subnets[i].Name,
-				allocatedSubnetCIDRBlocks)
-		}
 	}
 
 	//
