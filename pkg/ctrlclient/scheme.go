@@ -8,10 +8,11 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apiextensions-apiserver/pkg/apis/apiextensions"
 	"k8s.io/apimachinery/pkg/runtime"
-	capz "sigs.k8s.io/cluster-api-provider-azure/api/v1alpha3"
-	expcapz "sigs.k8s.io/cluster-api-provider-azure/exp/api/v1alpha3"
-	capi "sigs.k8s.io/cluster-api/api/v1alpha3"
-	expcapi "sigs.k8s.io/cluster-api/exp/api/v1alpha3"
+	capz "sigs.k8s.io/cluster-api-provider-azure/api/v1alpha4"
+	expcapz "sigs.k8s.io/cluster-api-provider-azure/exp/api/v1alpha4"
+	capi "sigs.k8s.io/cluster-api/api/v1alpha4"
+	kubeadm "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1alpha4"
+	expcapi "sigs.k8s.io/cluster-api/exp/api/v1alpha4"
 )
 
 var Scheme = runtime.NewScheme()
@@ -20,6 +21,7 @@ func init() {
 	schemeBuilder := runtime.SchemeBuilder{
 		apiextensions.AddToScheme,
 		capi.AddToScheme,
+		kubeadm.AddToScheme,
 		capz.AddToScheme,
 		expcapi.AddToScheme,
 		expcapz.AddToScheme,

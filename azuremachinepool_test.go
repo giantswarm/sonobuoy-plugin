@@ -9,8 +9,8 @@ import (
 	"github.com/giantswarm/conditions/pkg/conditions"
 	"github.com/giantswarm/microerror"
 	"github.com/giantswarm/micrologger"
-	capz "sigs.k8s.io/cluster-api-provider-azure/api/v1alpha3"
-	capi "sigs.k8s.io/cluster-api/api/v1alpha3"
+	capz "sigs.k8s.io/cluster-api-provider-azure/api/v1alpha4"
+	capi "sigs.k8s.io/cluster-api/api/v1alpha4"
 	capiconditions "sigs.k8s.io/cluster-api/util/conditions"
 
 	"github.com/giantswarm/sonobuoy-plugin/v5/pkg/assert"
@@ -177,11 +177,11 @@ func Test_AzureMachinePoolCR(t *testing.T) {
 			t.Fatalf("AzureMachinePool %s/%s Status.ProvisioningState is not set", amp.Namespace, amp.Name)
 		}
 
-		if *amp.Status.ProvisioningState != capz.VMStateSucceeded {
+		if *amp.Status.ProvisioningState != capz.Succeeded {
 			t.Fatalf("expected AzureMachinePool %s/%s Status.ProvisioningState is equal to %q, but got %q",
 				amp.Namespace,
 				amp.Name,
-				capz.VMStateSucceeded,
+				capz.Succeeded,
 				*amp.Status.ProvisioningState)
 		}
 

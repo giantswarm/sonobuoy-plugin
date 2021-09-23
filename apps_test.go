@@ -14,7 +14,7 @@ import (
 	"github.com/giantswarm/backoff"
 	"github.com/giantswarm/microerror"
 	"github.com/giantswarm/micrologger"
-	capiv1alpha3 "sigs.k8s.io/cluster-api/api/v1alpha3"
+	capi "sigs.k8s.io/cluster-api/api/v1alpha4"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	"github.com/giantswarm/sonobuoy-plugin/v5/pkg/capiutil"
@@ -47,7 +47,7 @@ func Test_Apps(t *testing.T) {
 	}
 
 	// Get Cluster.
-	var cluster *capiv1alpha3.Cluster
+	var cluster *capi.Cluster
 	{
 		cluster, err = capiutil.FindCluster(ctx, cpCtrlClient, clusterID)
 		if err != nil {

@@ -5,8 +5,8 @@ import (
 
 	"github.com/giantswarm/apiextensions/v3/pkg/label"
 	"github.com/giantswarm/microerror"
-	capi "sigs.k8s.io/cluster-api/api/v1alpha3"
-	capiexp "sigs.k8s.io/cluster-api/exp/api/v1alpha3"
+	capi "sigs.k8s.io/cluster-api/api/v1alpha4"
+	capiexp "sigs.k8s.io/cluster-api/exp/api/v1alpha4"
 	ctrl "sigs.k8s.io/controller-runtime/pkg/client"
 )
 

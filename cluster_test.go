@@ -10,7 +10,7 @@ import (
 	"github.com/giantswarm/conditions/pkg/conditions"
 	"github.com/giantswarm/microerror"
 	"github.com/giantswarm/micrologger"
-	capi "sigs.k8s.io/cluster-api/api/v1alpha3"
+	capi "sigs.k8s.io/cluster-api/api/v1alpha4"
 	capiconditions "sigs.k8s.io/cluster-api/util/conditions"
 
 	"github.com/giantswarm/sonobuoy-plugin/v5/pkg/assert"
@@ -104,9 +104,6 @@ func Test_ClusterCR(t *testing.T) {
 	//
 	// Test Status
 	//
-	if !cluster.Status.ControlPlaneInitialized {
-		t.Fatalf("control plane is not initialized")
-	}
 
 	if !cluster.Status.ControlPlaneReady {
 		t.Fatalf("control plane is not ready")
