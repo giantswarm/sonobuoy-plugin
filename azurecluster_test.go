@@ -109,7 +109,9 @@ func Test_AzureClusterCR(t *testing.T) {
 			return microerror.Mask(err)
 		}
 
-		if len(azureCluster.Spec.NetworkSpec.Subnets) != len(machinePools) {
+		// We have to take the control-plane subnet into consideration
+		nodepoolSubnets := len(azureCluster.Spec.NetworkSpec.Subnets) - 1
+		if nodepoolSubnets != len(machinePools) {
 			return microerror.Maskf(
 				unexpectedValueError,
 				"AzureCluster '%s/%s': expected %d subnets in Spec.NetworkSpec.Subnets (to match number of MachinePools), but got %d instead",
