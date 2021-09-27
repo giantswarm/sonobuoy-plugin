@@ -1,18 +1,34 @@
 version: 2.1
 
-orbs:
-  architect: giantswarm/architect@0.10.2
-
 workflows:
-  go-build:
+  docker-push-sonobuoy-plugin:
     jobs:
-      - architect/push-to-docker:
-          name: push-sonobuoy-plugin-to-quay
+      - build:
           context: architect
-          image: "quay.io/giantswarm/sonobuoy-plugin"
-          username_envar: "QUAY_USERNAME"
-          password_envar: "QUAY_PASSWORD"
-          filters:
-            # Needed to trigger job also on git tag.
-            tags:
-              only: /^v.*/
+
+jobs:
+  build:
+    docker:
+      - image: docker:20
+    steps:
+      - checkout
+      - setup_remote_docker
+      - attach_workspace:
+          at: .
+      - run:
+          name: Build application Docker image
+          command: |
+            docker build -t "quay.io/giantswarm/sonobuoy-plugin:${CIRCLE_BRANCH}" .
+      - run:
+          name: Authenticate to container registry
+          command: |
+            echo -n "${QUAY_PASSWORD}" | docker login --username "${QUAY_USERNAME}" --password-stdin "quay.io"
+      - deploy:
+          name: Push application Docker image
+          command: |
+            if [ "${CIRCLE_BRANCH}" == "master" ] || [ "${CIRCLE_BRANCH}" == "main" ]; then
+              docker tag "quay.io/giantswarm/sonobuoy-plugin:${CIRCLE_BRANCH}" "quay.io/giantswarm/sonobuoy-plugin:latest"
+              docker push "quay.io/giantswarm/sonobuoy-plugin:latest"
+            else
+              docker push "quay.io/giantswarm/sonobuoy-plugin:${CIRCLE_BRANCH}"
+            fi
