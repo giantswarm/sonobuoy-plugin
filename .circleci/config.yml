@@ -26,7 +26,7 @@ jobs:
       - deploy:
           name: Push application Docker image
           command: |
-            if [ "${CIRCLE_BRANCH}" == "master" ] || [ "${CIRCLE_BRANCH}" == "main" ]
+            if [ "${CIRCLE_BRANCH}" == "master" ] || [ "${CIRCLE_BRANCH}" == "main" ]; then
               docker tag "quay.io/giantswarm/sonobuoy-plugin:${CIRCLE_BRANCH}" "quay.io/giantswarm/sonobuoy-plugin:latest"
               docker push "quay.io/giantswarm/sonobuoy-plugin:latest"
             else
