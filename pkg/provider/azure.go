@@ -5,8 +5,8 @@ import (
 	"fmt"
 
 	"github.com/Azure/go-autorest/autorest/to"
-	"github.com/giantswarm/apiextensions/v3/pkg/annotation"
-	"github.com/giantswarm/apiextensions/v3/pkg/label"
+	"github.com/giantswarm/k8smetadata/pkg/annotation"
+	"github.com/giantswarm/k8smetadata/pkg/label"
 	"github.com/giantswarm/microerror"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/tools/reference"
@@ -173,7 +173,7 @@ func (p *AzureProviderSupport) createAzureMachinePool(ctx context.Context, clien
 		Spec: expcapz.AzureMachinePoolSpec{
 			AdditionalTags: map[string]string{
 				"cluster-autoscaler-enabled": "true",
-				"cluster-autoscaler-name":    "u7kt3",
+				"cluster-autoscaler-name":    cluster.Name,
 				"min":                        "3",
 				"max":                        "10",
 			},
