@@ -7,18 +7,15 @@ import (
 	"testing"
 
 	"github.com/giantswarm/apiextensions/v3/pkg/annotation"
-	"github.com/giantswarm/apiextensions/v3/pkg/apis/core/v1alpha1"
 	"github.com/giantswarm/apiextensions/v3/pkg/label"
 	"github.com/giantswarm/conditions/pkg/conditions"
 	"github.com/giantswarm/microerror"
 	"github.com/giantswarm/micrologger"
-	capi "sigs.k8s.io/cluster-api/api/v1alpha3"
-	capiconditions "sigs.k8s.io/cluster-api/util/conditions"
-	ctrl "sigs.k8s.io/controller-runtime/pkg/client"
-
 	"github.com/giantswarm/sonobuoy-plugin/v5/pkg/assert"
 	"github.com/giantswarm/sonobuoy-plugin/v5/pkg/capiutil"
 	"github.com/giantswarm/sonobuoy-plugin/v5/pkg/ctrlclient"
+	capi "sigs.k8s.io/cluster-api/api/v1alpha4"
+	capiconditions "sigs.k8s.io/cluster-api/util/conditions"
 )
 
 func Test_MachinePoolCR(t *testing.T) {
@@ -83,55 +80,14 @@ func Test_MachinePoolCR(t *testing.T) {
 		// Check if 'giantswarm.io/machine-pool' label is set
 		assert.LabelIsSet(t, &mp, label.MachinePool)
 
-		// Check if 'release.giantswarm.io/version' label is set
-		assert.LabelIsSet(t, &mp, label.ReleaseVersion)
-
-		// Check if 'azure-operator.giantswarm.io/version' label is set
-		assert.LabelIsSet(t, &mp, label.AzureOperatorVersion)
-
 		// Check if 'cluster.k8s.io/cluster-api-autoscaler-node-group-min-size' annotation is set
 		assert.AnnotationIsSet(t, &mp, annotation.NodePoolMinSize)
 
 		// Check if 'cluster.k8s.io/cluster-api-autoscaler-node-group-max-size' annotation is set
 		assert.AnnotationIsSet(t, &mp, annotation.NodePoolMaxSize)
 
-		// Check that corresponding Spark CR exists
-		_, err = findSpark(ctx, cpCtrlClient, clusterID, mp.Name)
-		if err != nil {
-			t.Fatalf("error finding Spark %s: %s", mp.Name, microerror.JSON(err))
-		}
-
-		//
-		// Wait for main conditions checking the remaining parts of the resource:
-		//   Ready     == True
-		//   Creating  == False
-		//   Upgrading == False
-		//
-
 		// Wait for Ready condition to be True
 		capiutil.WaitForCondition(t, ctx, logger, &mp, capi.ReadyCondition, capiconditions.IsTrue, machinePoolGetter)
-
-		// Wait for Creating condition to be False
-		capiutil.WaitForCondition(t, ctx, logger, &mp, conditions.Creating, capiconditions.IsFalse, machinePoolGetter)
-
-		// Wait for Upgrading condition to be False
-		capiutil.WaitForCondition(t, ctx, logger, &mp, conditions.Upgrading, capiconditions.IsFalse, machinePoolGetter)
-
-		//
-		// Continue checking metadata
-		//
-
-		// Check if Cluster and MachinePool have matching 'release.giantswarm.io/version' labels
-		assert.LabelIsEqual(t, cluster, &mp, label.ReleaseVersion)
-
-		// Check if 'release.giantswarm.io/last-deployed-version' annotation is set
-		assert.AnnotationIsSet(t, &mp, annotation.LastDeployedReleaseVersion)
-
-		// Check if Cluster and MachinePool have matching 'release.giantswarm.io/last-deployed-version' annotations
-		assert.AnnotationIsEqual(t, cluster, &mp, annotation.LastDeployedReleaseVersion)
-
-		// Check that Cluster and MachinePool have matching 'azure-operator.giantswarm.io/version' labels
-		assert.LabelIsEqual(t, cluster, &mp, label.AzureOperatorVersion)
 
 		// Assert that MachinePool owner reference is set to the specified Cluster
 		assert.ExpectedOwnerReferenceIsSet(t, &mp, cluster)
@@ -175,28 +131,4 @@ func Test_MachinePoolCR(t *testing.T) {
 			t.Fatalf("MachinePool ReplicasReady condition is not True")
 		}
 	}
-}
-
-func findSpark(ctx context.Context, client ctrl.Client, clusterID, machinePoolID string) (*v1alpha1.Spark, error) {
-	var spark *v1alpha1.Spark
-	{
-		var sparkList v1alpha1.SparkList
-		err := client.List(ctx, &sparkList, ctrl.MatchingLabels{capi.ClusterLabelName: clusterID})
-		if err != nil {
-			return nil, microerror.Mask(err)
-		}
-
-		for _, sparkItem := range sparkList.Items {
-			if sparkItem.Name == machinePoolID {
-				spark = &sparkItem
-				break
-			}
-		}
-
-		if spark == nil {
-			return nil, microerror.Maskf(notFoundError, "can't find Spark with ID %q", machinePoolID)
-		}
-	}
-
-	return spark, nil
 }

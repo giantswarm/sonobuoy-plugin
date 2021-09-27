@@ -6,11 +6,10 @@ import (
 	"testing"
 
 	"github.com/giantswarm/apiextensions/v3/pkg/label"
-	"github.com/giantswarm/conditions/pkg/conditions"
 	"github.com/giantswarm/microerror"
 	"github.com/giantswarm/micrologger"
-	capz "sigs.k8s.io/cluster-api-provider-azure/api/v1alpha3"
-	capi "sigs.k8s.io/cluster-api/api/v1alpha3"
+	capz "sigs.k8s.io/cluster-api-provider-azure/api/v1alpha4"
+	capi "sigs.k8s.io/cluster-api/api/v1alpha4"
 	capiconditions "sigs.k8s.io/cluster-api/util/conditions"
 
 	"github.com/giantswarm/sonobuoy-plugin/v5/pkg/assert"
@@ -47,17 +46,6 @@ func Test_AzureMachinePoolCR(t *testing.T) {
 	if err != nil {
 		t.Fatalf("error creating CP k8s client: %v", err)
 	}
-
-	clusterGetter := func(clusterName string) capiutil.TestedObject {
-		cluster, err := capiutil.FindCluster(ctx, cpCtrlClient, clusterName)
-		if err != nil {
-			t.Fatalf("error finding cluster: %s", microerror.JSON(err))
-		}
-
-		return cluster
-	}
-
-	cluster := clusterGetter(clusterID).(*capi.Cluster)
 
 	azureMachinePools, err := capiutil.FindNonTestingAzureMachinePoolsForCluster(ctx, cpCtrlClient, clusterID)
 	if err != nil {
@@ -96,23 +84,7 @@ func Test_AzureMachinePoolCR(t *testing.T) {
 		// Check if 'giantswarm.io/machine-pool' label is set
 		assert.LabelIsSet(t, &amp, label.MachinePool)
 
-		// Check if 'release.giantswarm.io/version' label is set
-		assert.LabelIsSet(t, cluster, label.ReleaseVersion)
-
-		// Check if 'azure-operator.giantswarm.io/version' label is set
-		assert.LabelIsSet(t, cluster, label.AzureOperatorVersion)
-
-		//
-		// Wait for main conditions checking the remaining parts of the resource:
-		//   Ready == True
-		//
 		capiutil.WaitForCondition(t, ctx, logger, &amp, capi.ReadyCondition, capiconditions.IsTrue, azureMachinePoolGetter)
-
-		// Check that Cluster and AzureMachinePool desired release version matches
-		assert.LabelIsEqual(t, cluster, &amp, label.ReleaseVersion)
-
-		// Check that Cluster and AzureMachinePool azure-operator version matches
-		assert.LabelIsEqual(t, cluster, &amp, label.AzureOperatorVersion)
 
 		machinePool, err := capiutil.FindMachinePool(ctx, cpCtrlClient, amp.Name)
 		if err != nil {
@@ -126,12 +98,6 @@ func Test_AzureMachinePoolCR(t *testing.T) {
 
 		// Wait for Ready condition to be True
 		capiutil.WaitForCondition(t, ctx, logger, machinePool, capi.ReadyCondition, capiconditions.IsTrue, machinePoolGetter)
-
-		// Wait for Creating condition to be False
-		capiutil.WaitForCondition(t, ctx, logger, machinePool, conditions.Creating, capiconditions.IsFalse, machinePoolGetter)
-
-		// Wait for Upgrading condition to be False
-		capiutil.WaitForCondition(t, ctx, logger, machinePool, conditions.Upgrading, capiconditions.IsFalse, machinePoolGetter)
 
 		// Check that MachinePool and AzureMachinePool giantswarm.io/machine-pool label matches
 		assert.LabelIsEqual(t, machinePool, &amp, label.MachinePool)
@@ -170,11 +136,11 @@ func Test_AzureMachinePoolCR(t *testing.T) {
 			t.Fatalf("AzureMachinePool %s/%s Status.ProvisioningState is not set", amp.Namespace, amp.Name)
 		}
 
-		if *amp.Status.ProvisioningState != capz.VMStateSucceeded {
+		if *amp.Status.ProvisioningState != capz.Succeeded {
 			t.Fatalf("expected AzureMachinePool %s/%s Status.ProvisioningState is equal to %q, but got %q",
 				amp.Namespace,
 				amp.Name,
-				capz.VMStateSucceeded,
+				capz.Succeeded,
 				*amp.Status.ProvisioningState)
 		}
 

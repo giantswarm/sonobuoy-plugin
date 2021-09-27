@@ -3,6 +3,7 @@ package sonobuoy_plugin
 import (
 	"context"
 	"errors"
+	"fmt"
 	"os"
 	"reflect"
 	"sort"
@@ -11,7 +12,7 @@ import (
 	"github.com/giantswarm/backoff"
 	"github.com/giantswarm/microerror"
 	"github.com/giantswarm/micrologger"
-	capi "sigs.k8s.io/cluster-api/api/v1alpha3"
+	capi "sigs.k8s.io/cluster-api/api/v1alpha4"
 	capiconditions "sigs.k8s.io/cluster-api/util/conditions"
 	ctrl "sigs.k8s.io/controller-runtime/pkg/client"
 
@@ -79,7 +80,7 @@ func Test_AvailabilityZones(t *testing.T) {
 
 			// Return error for retry until node pool nodes are Ready.
 			if !capiconditions.IsTrue(machinePool, capi.ReadyCondition) {
-				return errors.New("node pool is not ready yet")
+				return errors.New(fmt.Sprintf("node pool %q is not ready yet", machinePool.Name))
 			}
 
 			return nil

@@ -5,8 +5,8 @@ import (
 
 	"github.com/giantswarm/apiextensions/v3/pkg/label"
 	"github.com/giantswarm/microerror"
-	capi "sigs.k8s.io/cluster-api/api/v1alpha3"
-	capiexp "sigs.k8s.io/cluster-api/exp/api/v1alpha3"
+	capi "sigs.k8s.io/cluster-api/api/v1alpha4"
+	capiexp "sigs.k8s.io/cluster-api/exp/api/v1alpha4"
 	ctrl "sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -37,7 +37,7 @@ func FindMachinePool(ctx context.Context, client ctrl.Client, machinePoolID stri
 func FindNonTestingMachinePoolsForCluster(ctx context.Context, client ctrl.Client, clusterID string) ([]capiexp.MachinePool, error) {
 	var machinePools []capiexp.MachinePool
 	{
-		machinePoolList, err := FindAllMachinePoolsForCluster(ctx, client, clusterID)
+		machinePoolList, err := FindAllExpMachinePoolsForCluster(ctx, client, clusterID)
 		if err != nil {
 			return nil, microerror.Mask(err)
 		}
@@ -55,9 +55,9 @@ func FindNonTestingMachinePoolsForCluster(ctx context.Context, client ctrl.Clien
 	return machinePools, nil
 }
 
-// FindAllMachinePoolsForCluster returns list of `MachinePool` belonging to the
+// FindAllExpMachinePoolsForCluster returns list of `MachinePool` belonging to the
 // specified cluster ID.
-func FindAllMachinePoolsForCluster(ctx context.Context, client ctrl.Client, clusterID string) ([]capiexp.MachinePool, error) {
+func FindAllExpMachinePoolsForCluster(ctx context.Context, client ctrl.Client, clusterID string) ([]capiexp.MachinePool, error) {
 	var machinePoolList capiexp.MachinePoolList
 	err := client.List(ctx, &machinePoolList, ctrl.MatchingLabels{capi.ClusterLabelName: clusterID})
 	if err != nil {

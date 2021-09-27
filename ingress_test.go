@@ -13,7 +13,7 @@ import (
 	"github.com/giantswarm/micrologger"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	capiv1alpha3 "sigs.k8s.io/cluster-api/api/v1alpha3"
+	capi "sigs.k8s.io/cluster-api/api/v1alpha4"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	"github.com/giantswarm/sonobuoy-plugin/v5/pkg/ctrlclient"
@@ -81,8 +81,8 @@ func Test_Ingress(t *testing.T) {
 
 	logger.Debugf(ctx, "Testing that we can send http requests to a deployed app exposed via Ingress")
 
-	clusterList := &capiv1alpha3.ClusterList{}
-	err = cpCtrlClient.List(ctx, clusterList, client.MatchingLabels{capiv1alpha3.ClusterLabelName: clusterID})
+	clusterList := &capi.ClusterList{}
+	err = cpCtrlClient.List(ctx, clusterList, client.MatchingLabels{capi.ClusterLabelName: clusterID})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -143,10 +143,7 @@ func Test_Ingress(t *testing.T) {
 	})
 
 	o := func() error {
-		objectKey, err := client.ObjectKeyFromObject(pod)
-		if err != nil {
-			return microerror.Mask(err)
-		}
+		objectKey := client.ObjectKeyFromObject(pod)
 		scheduledPod := &corev1.Pod{}
 		err = cpCtrlClient.Get(ctx, objectKey, scheduledPod)
 		if err != nil {

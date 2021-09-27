@@ -5,12 +5,11 @@ import (
 	"os"
 	"testing"
 
-	"github.com/giantswarm/apiextensions/v3/pkg/annotation"
 	"github.com/giantswarm/apiextensions/v3/pkg/label"
 	"github.com/giantswarm/conditions/pkg/conditions"
 	"github.com/giantswarm/microerror"
 	"github.com/giantswarm/micrologger"
-	capi "sigs.k8s.io/cluster-api/api/v1alpha3"
+	capi "sigs.k8s.io/cluster-api/api/v1alpha4"
 	capiconditions "sigs.k8s.io/cluster-api/util/conditions"
 
 	"github.com/giantswarm/sonobuoy-plugin/v5/pkg/assert"
@@ -59,47 +58,12 @@ func Test_ClusterCR(t *testing.T) {
 	// Check if 'release.giantswarm.io/version' label is set
 	assert.LabelIsSet(t, cluster, label.ReleaseVersion)
 
-	// Check if 'azure-operator.giantswarm.io/version' label is set
-	assert.LabelIsSet(t, cluster, label.AzureOperatorVersion)
-
-	//
-	// Wait for main conditions checking the remaining parts of the resource:
-	//   Ready     == True
-	//   Creating  == False
-	//   Upgrading == False
-	//
-
 	// Wait for Ready condition to be True
 	capiutil.WaitForCondition(t, ctx, logger, cluster, capi.ReadyCondition, capiconditions.IsTrue, clusterGetter)
-
-	// Wait for Creating condition to be False
-	capiutil.WaitForCondition(t, ctx, logger, cluster, conditions.Creating, capiconditions.IsFalse, clusterGetter)
-
-	// Wait for Upgrading condition to be False
-	capiutil.WaitForCondition(t, ctx, logger, cluster, conditions.Upgrading, capiconditions.IsFalse, clusterGetter)
-
-	//
-	// Continue checking metadata
-	//
-
-	// Check if 'release.giantswarm.io/last-deployed-version' annotation is set
-	assert.AnnotationIsSet(t, cluster, annotation.LastDeployedReleaseVersion)
-
-	desiredRelease := cluster.Labels[label.ReleaseVersion]
-	lastDeployedReleaseRelease := cluster.Annotations[annotation.LastDeployedReleaseVersion]
-	if lastDeployedReleaseRelease != desiredRelease {
-		t.Fatalf(
-			"expected last deployed release %q and desired release %q to match",
-			lastDeployedReleaseRelease,
-			desiredRelease)
-	}
 
 	//
 	// Test Status
 	//
-	if !cluster.Status.ControlPlaneInitialized {
-		t.Fatalf("control plane is not initialized")
-	}
 
 	if !cluster.Status.ControlPlaneReady {
 		t.Fatalf("control plane is not ready")
@@ -107,14 +71,6 @@ func Test_ClusterCR(t *testing.T) {
 
 	if !cluster.Status.InfrastructureReady {
 		t.Fatalf("infrastructure is not ready")
-	}
-
-	// Verify that Creating condition has Reason=CreationCompleted
-	if !conditions.IsCreatingFalse(cluster, conditions.WithCreationCompletedReason()) {
-		creatingCondition, _ := conditions.GetCreating(cluster)
-		t.Fatalf(
-			"Cluster Creating condition have unexpected Reason, expected 'CreationCompleted', got '%s'",
-			creatingCondition.Reason)
 	}
 
 	// Verify that ControlPlaneReady condition is True
@@ -125,10 +81,5 @@ func Test_ClusterCR(t *testing.T) {
 	// Verify that InfrastructureReady condition is True
 	if !conditions.IsInfrastructureReadyTrue(cluster) {
 		t.Fatalf("Cluster InfrastructureReady condition is not True")
-	}
-
-	// Verify that NodePoolsReady condition is True
-	if !conditions.IsNodePoolsReadyTrue(cluster) {
-		t.Fatalf("Cluster NodePoolsReady condition is not True")
 	}
 }
