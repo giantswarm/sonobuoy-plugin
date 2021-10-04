@@ -10,6 +10,7 @@ import (
 	"github.com/giantswarm/conditions/pkg/conditions"
 	"github.com/giantswarm/microerror"
 	"github.com/giantswarm/micrologger"
+	"github.com/giantswarm/sonobuoy-plugin/v5/pkg/provider"
 	capi "sigs.k8s.io/cluster-api/api/v1alpha3"
 	capiconditions "sigs.k8s.io/cluster-api/util/conditions"
 
@@ -30,6 +31,12 @@ func Test_ClusterCR(t *testing.T) {
 	}
 
 	logger := NewTestLogger(regularLogger, t)
+
+	if provider.GetProvider() != "azure" {
+		t.Logf("this test is not implemented on %#q yet, skipping", provider.GetProvider())
+		t.SkipNow()
+		return
+	}
 
 	clusterID, exists := os.LookupEnv("CLUSTER_ID")
 	if !exists {
