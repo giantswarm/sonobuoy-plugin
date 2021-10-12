@@ -11,11 +11,14 @@ import (
 	"github.com/giantswarm/conditions/pkg/conditions"
 	"github.com/giantswarm/microerror"
 	"github.com/giantswarm/micrologger"
+	"sigs.k8s.io/cluster-api-provider-azure/exp/api/v1alpha4"
+	capi "sigs.k8s.io/cluster-api/api/v1alpha4"
+	capiconditions "sigs.k8s.io/cluster-api/util/conditions"
+	"sigs.k8s.io/controller-runtime/pkg/client"
+
 	"github.com/giantswarm/sonobuoy-plugin/v5/pkg/assert"
 	"github.com/giantswarm/sonobuoy-plugin/v5/pkg/capiutil"
 	"github.com/giantswarm/sonobuoy-plugin/v5/pkg/ctrlclient"
-	capi "sigs.k8s.io/cluster-api/api/v1alpha4"
-	capiconditions "sigs.k8s.io/cluster-api/util/conditions"
 )
 
 func Test_MachinePoolCR(t *testing.T) {
@@ -80,11 +83,53 @@ func Test_MachinePoolCR(t *testing.T) {
 		// Check if 'giantswarm.io/machine-pool' label is set
 		assert.LabelIsSet(t, &mp, label.MachinePool)
 
-		// Check if 'cluster.k8s.io/cluster-api-autoscaler-node-group-min-size' annotation is set
-		assert.AnnotationIsSet(t, &mp, annotation.NodePoolMinSize)
+		if mp.Spec.Template.Spec.InfrastructureRef.Kind == "AzureMachinePool" {
+			amp := v1alpha4.AzureMachinePool{}
+			err := cpCtrlClient.Get(ctx, client.ObjectKey{Namespace: mp.Spec.Template.Spec.InfrastructureRef.Namespace, Name: mp.Spec.Template.Spec.InfrastructureRef.Name}, &amp)
+			if err != nil {
+				t.Fatalf("unable to retrieve AzureMachinePool %q/%q: %v", mp.Spec.Template.Spec.InfrastructureRef.Namespace, mp.Spec.Template.Spec.InfrastructureRef.Name, err)
+			}
 
-		// Check if 'cluster.k8s.io/cluster-api-autoscaler-node-group-max-size' annotation is set
-		assert.AnnotationIsSet(t, &mp, annotation.NodePoolMaxSize)
+			var minReplicasString, maxReplicasString string
+			{
+				_, ok := amp.Spec.AdditionalTags["min"]
+				if ok {
+					// CAPZ cluster
+
+					minReplicasString = amp.Spec.AdditionalTags["min"]
+					maxReplicasString = amp.Spec.AdditionalTags["max"]
+				} else {
+					// GS clusters
+
+					// Check if 'cluster.k8s.io/cluster-api-autoscaler-node-group-min-size' annotation is set
+					assert.AnnotationIsSet(t, &mp, annotation.NodePoolMinSize)
+
+					// Check if 'cluster.k8s.io/cluster-api-autoscaler-node-group-max-size' annotation is set
+					assert.AnnotationIsSet(t, &mp, annotation.NodePoolMaxSize)
+
+					minReplicasString = mp.Annotations[annotation.NodePoolMinSize]
+					maxReplicasString = mp.Annotations[annotation.NodePoolMaxSize]
+				}
+			}
+
+			minReplicas, err := strconv.Atoi(minReplicasString)
+			if err != nil {
+				t.Fatalf("error converting additional tag 'min' to integer %v", err)
+			}
+
+			maxReplicas, err := strconv.Atoi(maxReplicasString)
+			if err != nil {
+				t.Fatalf("error converting additional tag 'max' to integer %v", err)
+			}
+
+			// Check if number of found replicas is within expected cluster autoscaler limits
+			if int(mp.Status.Replicas) < minReplicas {
+				t.Fatalf("specified min %d replicas, found %d", minReplicas, mp.Status.Replicas)
+			}
+			if int(mp.Status.Replicas) > maxReplicas {
+				t.Fatalf("specified max %d replicas, found %d", maxReplicas, mp.Status.Replicas)
+			}
+		}
 
 		// Wait for Ready condition to be True
 		capiutil.WaitForCondition(t, ctx, logger, &mp, capi.ReadyCondition, capiconditions.IsTrue, machinePoolGetter)
@@ -95,26 +140,6 @@ func Test_MachinePoolCR(t *testing.T) {
 		//
 		// Check Spec & Status
 		//
-
-		minReplicasString := mp.Annotations[annotation.NodePoolMinSize]
-		minReplicas, err := strconv.Atoi(minReplicasString)
-		if err != nil {
-			t.Fatalf("error converting annotation %q to integer %v", annotation.NodePoolMinSize, err)
-		}
-
-		maxReplicasString := mp.Annotations[annotation.NodePoolMaxSize]
-		maxReplicas, err := strconv.Atoi(maxReplicasString)
-		if err != nil {
-			t.Fatalf("error converting annotation %q to integer %v", annotation.NodePoolMaxSize, err)
-		}
-
-		// Check if number of found replicas is within expected cluster autoscaler limits
-		if int(mp.Status.Replicas) < minReplicas {
-			t.Fatalf("specified min %d replicas in annotation %q, found %d", minReplicas, annotation.NodePoolMinSize, mp.Status.Replicas)
-		}
-		if int(mp.Status.Replicas) > maxReplicas {
-			t.Fatalf("specified max %d replicas in annotation %q, found %d", maxReplicas, annotation.NodePoolMaxSize, mp.Status.Replicas)
-		}
 
 		// Check if all discovered replicas are ready
 		if mp.Status.Replicas != mp.Status.ReadyReplicas {
