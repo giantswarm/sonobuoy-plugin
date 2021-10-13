@@ -6,7 +6,6 @@ import (
 	"strconv"
 	"testing"
 
-	"github.com/giantswarm/apiextensions/v3/pkg/annotation"
 	"github.com/giantswarm/apiextensions/v3/pkg/label"
 	"github.com/giantswarm/conditions/pkg/conditions"
 	"github.com/giantswarm/microerror"
@@ -90,33 +89,13 @@ func Test_MachinePoolCR(t *testing.T) {
 				t.Fatalf("unable to retrieve AzureMachinePool %q/%q: %v", mp.Spec.Template.Spec.InfrastructureRef.Namespace, mp.Spec.Template.Spec.InfrastructureRef.Name, err)
 			}
 
-			var minReplicasString, maxReplicasString string
-			{
-				_, ok := amp.Spec.AdditionalTags["min"]
-				if ok {
-					// CAPZ cluster
-
-					minReplicasString = amp.Spec.AdditionalTags["min"]
-					maxReplicasString = amp.Spec.AdditionalTags["max"]
-				} else {
-					// GS clusters
-
-					// Check if 'cluster.k8s.io/cluster-api-autoscaler-node-group-min-size' annotation is set
-					assert.AnnotationIsSet(t, &mp, annotation.NodePoolMinSize)
-
-					// Check if 'cluster.k8s.io/cluster-api-autoscaler-node-group-max-size' annotation is set
-					assert.AnnotationIsSet(t, &mp, annotation.NodePoolMaxSize)
-
-					minReplicasString = mp.Annotations[annotation.NodePoolMinSize]
-					maxReplicasString = mp.Annotations[annotation.NodePoolMaxSize]
-				}
-			}
-
+			minReplicasString := amp.Spec.AdditionalTags["min"]
 			minReplicas, err := strconv.Atoi(minReplicasString)
 			if err != nil {
 				t.Fatalf("error converting additional tag 'min' to integer %v", err)
 			}
 
+			maxReplicasString := amp.Spec.AdditionalTags["max"]
 			maxReplicas, err := strconv.Atoi(maxReplicasString)
 			if err != nil {
 				t.Fatalf("error converting additional tag 'max' to integer %v", err)

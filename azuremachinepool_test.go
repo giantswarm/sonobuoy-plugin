@@ -17,7 +17,6 @@ import (
 	"github.com/giantswarm/sonobuoy-plugin/v5/pkg/assert"
 	"github.com/giantswarm/sonobuoy-plugin/v5/pkg/capiutil"
 	"github.com/giantswarm/sonobuoy-plugin/v5/pkg/ctrlclient"
-	"github.com/giantswarm/sonobuoy-plugin/v5/pkg/key"
 	"github.com/giantswarm/sonobuoy-plugin/v5/pkg/provider"
 )
 
@@ -57,15 +56,6 @@ func Test_AzureMachinePoolCR(t *testing.T) {
 
 	if len(azureMachinePools) == 0 {
 		t.Fatal("Expected one azure machine pool to exist, none found.")
-	}
-
-	azureMachinePoolGetter := func(azureMachinePoolID string) capiutil.TestedObject {
-		machinePool, err := capiutil.FindAzureMachinePool(ctx, cpCtrlClient, azureMachinePoolID)
-		if err != nil {
-			t.Fatalf("error finding AzureMachinePool %s: %s", azureMachinePoolID, microerror.JSON(err))
-		}
-
-		return machinePool
 	}
 
 	machinePoolGetter := func(machinePoolID string) capiutil.TestedObject {
