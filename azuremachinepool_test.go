@@ -87,31 +87,25 @@ func Test_AzureMachinePoolCR(t *testing.T) {
 		// Check if 'giantswarm.io/machine-pool' label is set
 		assert.LabelIsSet(t, &amp, label.MachinePool)
 
-		if key.IsCapiRelease(amp.Labels["release.giantswarm.io/version"]) {
-			// CAPZ cluster.
-			o := func() error {
-				machinePool, err := capiutil.FindAzureMachinePool(ctx, cpCtrlClient, amp.Name)
-				if err != nil {
-					return microerror.Maskf(executionFailedError, "error finding AzureMachinePool %s: %s", amp.Name, microerror.JSON(err))
-				}
-
-				if !machinePool.Status.Ready {
-					return microerror.Maskf(unexpectedValueError, "expected %q AzureMachinePool's status.ready field to be true, was false", amp.Name)
-				}
-
-				return nil
-			}
-
-			b := backoff.NewExponential(20*time.Minute, backoff.LongMaxInterval)
-			n := backoff.NewNotifier(logger, ctx)
-			err := backoff.RetryNotify(o, b, n)
+		// CAPZ cluster.
+		o := func() error {
+			machinePool, err := capiutil.FindAzureMachinePool(ctx, cpCtrlClient, amp.Name)
 			if err != nil {
-				t.Fatalf(
-					"error while waiting for azure machine pool to become ready")
+				return microerror.Maskf(executionFailedError, "error finding AzureMachinePool %s: %s", amp.Name, microerror.JSON(err))
 			}
-		} else {
-			// GS cluster.
-			capiutil.WaitForCondition(t, ctx, logger, &amp, capi.ReadyCondition, capiconditions.IsTrue, azureMachinePoolGetter)
+
+			if !machinePool.Status.Ready {
+				return microerror.Maskf(unexpectedValueError, "expected %q AzureMachinePool's status.ready field to be true, was false", amp.Name)
+			}
+
+			return nil
+		}
+
+		b := backoff.NewExponential(20*time.Minute, backoff.LongMaxInterval)
+		n := backoff.NewNotifier(logger, ctx)
+		err := backoff.RetryNotify(o, b, n)
+		if err != nil {
+			t.Fatalf("error while waiting for azure machine pool to become ready")
 		}
 
 		machinePool, err := capiutil.FindMachinePool(ctx, cpCtrlClient, amp.Name)
