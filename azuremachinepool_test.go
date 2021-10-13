@@ -4,8 +4,10 @@ import (
 	"context"
 	"os"
 	"testing"
+	"time"
 
 	"github.com/giantswarm/apiextensions/v3/pkg/label"
+	"github.com/giantswarm/backoff"
 	"github.com/giantswarm/microerror"
 	"github.com/giantswarm/micrologger"
 	capz "sigs.k8s.io/cluster-api-provider-azure/api/v1alpha4"
@@ -56,15 +58,6 @@ func Test_AzureMachinePoolCR(t *testing.T) {
 		t.Fatal("Expected one azure machine pool to exist, none found.")
 	}
 
-	azureMachinePoolGetter := func(azureMachinePoolID string) capiutil.TestedObject {
-		machinePool, err := capiutil.FindAzureMachinePool(ctx, cpCtrlClient, azureMachinePoolID)
-		if err != nil {
-			t.Fatalf("error finding AzureMachinePool %s: %s", azureMachinePoolID, microerror.JSON(err))
-		}
-
-		return machinePool
-	}
-
 	machinePoolGetter := func(machinePoolID string) capiutil.TestedObject {
 		machinePool, err := capiutil.FindMachinePool(ctx, cpCtrlClient, machinePoolID)
 		if err != nil {
@@ -84,7 +77,26 @@ func Test_AzureMachinePoolCR(t *testing.T) {
 		// Check if 'giantswarm.io/machine-pool' label is set
 		assert.LabelIsSet(t, &amp, label.MachinePool)
 
-		capiutil.WaitForCondition(t, ctx, logger, &amp, capi.ReadyCondition, capiconditions.IsTrue, azureMachinePoolGetter)
+		// CAPZ cluster.
+		o := func() error {
+			machinePool, err := capiutil.FindAzureMachinePool(ctx, cpCtrlClient, amp.Name)
+			if err != nil {
+				return microerror.Maskf(executionFailedError, "error finding AzureMachinePool %s: %s", amp.Name, microerror.JSON(err))
+			}
+
+			if !machinePool.Status.Ready {
+				return microerror.Maskf(unexpectedValueError, "expected %q AzureMachinePool's status.ready field to be true, was false", amp.Name)
+			}
+
+			return nil
+		}
+
+		b := backoff.NewExponential(20*time.Minute, backoff.LongMaxInterval)
+		n := backoff.NewNotifier(logger, ctx)
+		err := backoff.RetryNotify(o, b, n)
+		if err != nil {
+			t.Fatalf("error while waiting for azure machine pool to become ready")
+		}
 
 		machinePool, err := capiutil.FindMachinePool(ctx, cpCtrlClient, amp.Name)
 		if err != nil {

@@ -136,7 +136,7 @@ func Test_Autoscaler(t *testing.T) {
 
 func getWorkersCount(ctx context.Context, ctrlClient client.Client, machinePoolName string) (int, error) {
 	workers := &corev1.NodeList{}
-	err := ctrlClient.List(ctx, workers, client.MatchingLabels{"kubernetes.io/role": "worker", "giantswarm.io/machine-pool": machinePoolName})
+	err := ctrlClient.List(ctx, workers, client.MatchingLabels{"role": "worker", "giantswarm.io/machine-pool": machinePoolName})
 	if err != nil {
 		return -1, err
 	}
