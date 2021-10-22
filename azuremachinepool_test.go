@@ -55,15 +55,6 @@ func Test_AzureMachinePoolCR(t *testing.T) {
 		t.Fatal("Expected one azure machine pool to exist, none found.")
 	}
 
-	machinePoolGetter := func(machinePoolID string) capiutil.TestedObject {
-		machinePool, err := capiutil.FindMachinePool(ctx, cpCtrlClient, machinePoolID)
-		if err != nil {
-			t.Fatalf("error finding MachinePool %s: %s", machinePoolID, microerror.JSON(err))
-		}
-
-		return machinePool
-	}
-
 	for _, azureMachinePool := range azureMachinePools {
 		amp := azureMachinePool
 
