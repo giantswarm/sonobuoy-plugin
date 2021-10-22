@@ -10,14 +10,11 @@ import (
 	"github.com/giantswarm/backoff"
 	"github.com/giantswarm/microerror"
 	"github.com/giantswarm/micrologger"
-	capz "sigs.k8s.io/cluster-api-provider-azure/api/v1alpha4"
-	capi "sigs.k8s.io/cluster-api/api/v1alpha4"
-	capiconditions "sigs.k8s.io/cluster-api/util/conditions"
-
 	"github.com/giantswarm/sonobuoy-plugin/v5/pkg/assert"
 	"github.com/giantswarm/sonobuoy-plugin/v5/pkg/capiutil"
 	"github.com/giantswarm/sonobuoy-plugin/v5/pkg/ctrlclient"
 	"github.com/giantswarm/sonobuoy-plugin/v5/pkg/provider"
+	capz "sigs.k8s.io/cluster-api-provider-azure/api/v1alpha4"
 )
 
 func Test_AzureMachinePoolCR(t *testing.T) {
@@ -103,14 +100,6 @@ func Test_AzureMachinePoolCR(t *testing.T) {
 			t.Fatalf("error finding MachinePool %s: %s", amp.Name, microerror.JSON(err))
 		}
 
-		//
-		// Since we will be using MachinePool Status in the checks, we should
-		// wait for the MachinePool to be ready and to have up-to-date conditions.
-		//
-
-		// Wait for Ready condition to be True
-		capiutil.WaitForCondition(t, ctx, logger, machinePool, capi.ReadyCondition, capiconditions.IsTrue, machinePoolGetter)
-
 		// Check that MachinePool and AzureMachinePool giantswarm.io/machine-pool label matches
 		assert.LabelIsEqual(t, machinePool, &amp, label.MachinePool)
 
@@ -154,13 +143,6 @@ func Test_AzureMachinePoolCR(t *testing.T) {
 				amp.Name,
 				capz.Succeeded,
 				*amp.Status.ProvisioningState)
-		}
-
-		if !amp.Status.Ready {
-			t.Fatalf("AzureMachinePool %s/%s is not ready, Status.Ready == %t",
-				amp.Namespace,
-				amp.Name,
-				amp.Status.Ready)
 		}
 	}
 }
