@@ -10,9 +10,11 @@ import (
 	"github.com/giantswarm/conditions/pkg/conditions"
 	"github.com/giantswarm/microerror"
 	"github.com/giantswarm/micrologger"
-	"github.com/giantswarm/sonobuoy-plugin/v5/pkg/provider"
+	corev1 "k8s.io/api/core/v1"
 	capi "sigs.k8s.io/cluster-api/api/v1alpha3"
 	capiconditions "sigs.k8s.io/cluster-api/util/conditions"
+
+	"github.com/giantswarm/sonobuoy-plugin/v5/pkg/provider"
 
 	"github.com/giantswarm/sonobuoy-plugin/v5/pkg/assert"
 	"github.com/giantswarm/sonobuoy-plugin/v5/pkg/capiutil"
@@ -109,7 +111,9 @@ func Test_ClusterCR(t *testing.T) {
 	}
 
 	if !cluster.Status.ControlPlaneReady {
-		t.Fatalf("control plane is not ready")
+		if capiutil.GetCondition(cluster, capi.ControlPlaneReadyCondition) != corev1.ConditionTrue {
+			t.Fatalf("control plane is not ready")
+		}
 	}
 
 	if !cluster.Status.InfrastructureReady {
