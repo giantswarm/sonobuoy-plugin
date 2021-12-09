@@ -2,6 +2,15 @@ package capiutil
 
 import "github.com/giantswarm/microerror"
 
+var labelNotSetError = &microerror.Error{
+	Kind: "labelNotSetError",
+}
+
+// IsLabelNotSet asserts labelNotSetError.
+func IsLabelNotSet(err error) bool {
+	return microerror.Cause(err) == labelNotSetError
+}
+
 var notFoundError = &microerror.Error{
 	Kind: "notFoundError",
 }

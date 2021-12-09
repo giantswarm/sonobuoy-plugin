@@ -12,10 +12,11 @@ import (
 	"github.com/giantswarm/conditions/pkg/conditions"
 	"github.com/giantswarm/microerror"
 	"github.com/giantswarm/micrologger"
-	"github.com/giantswarm/sonobuoy-plugin/v5/pkg/provider"
 	capi "sigs.k8s.io/cluster-api/api/v1alpha3"
 	capiconditions "sigs.k8s.io/cluster-api/util/conditions"
 	ctrl "sigs.k8s.io/controller-runtime/pkg/client"
+
+	"github.com/giantswarm/sonobuoy-plugin/v5/pkg/provider"
 
 	"github.com/giantswarm/sonobuoy-plugin/v5/pkg/assert"
 	"github.com/giantswarm/sonobuoy-plugin/v5/pkg/capiutil"
@@ -59,8 +60,6 @@ func Test_MachinePoolCR(t *testing.T) {
 
 		return cluster
 	}
-
-	cluster := clusterGetter(clusterID).(*capi.Cluster)
 
 	machinePoolGetter := func(machinePoolID string) capiutil.TestedObject {
 		machinePool, err := capiutil.FindMachinePool(ctx, cpCtrlClient, machinePoolID)
@@ -129,7 +128,14 @@ func Test_MachinePoolCR(t *testing.T) {
 		//
 
 		// Check if Cluster and MachinePool have matching 'release.giantswarm.io/version' labels
-		assert.LabelIsEqual(t, cluster, &mp, label.ReleaseVersion)
+		var cluster *capi.Cluster
+		{
+			err = capiutil.WaitForLabelSet(clusterGetter, clusterID, label.ReleaseVersion, cluster)
+			if err != nil {
+				t.Fatalf("error waiting for cluster %q to have label %q", clusterID, label.ReleaseVersion)
+			}
+			assert.LabelIsEqual(t, cluster, &mp, label.ReleaseVersion)
+		}
 
 		// Check if 'release.giantswarm.io/last-deployed-version' annotation is set
 		assert.AnnotationIsSet(t, &mp, annotation.LastDeployedReleaseVersion)
