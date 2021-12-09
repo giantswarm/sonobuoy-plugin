@@ -134,6 +134,7 @@ func Test_MachinePoolCR(t *testing.T) {
 			if err != nil {
 				t.Fatalf("error waiting for cluster %q to have label %q", clusterID, label.ReleaseVersion)
 			}
+			cluster = clusterGetter(clusterID).(*capi.Cluster)
 			assert.LabelIsEqual(t, cluster, &mp, label.ReleaseVersion)
 		}
 
