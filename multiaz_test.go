@@ -39,12 +39,6 @@ func Test_AvailabilityZones(t *testing.T) {
 
 	logger := NewTestLogger(regularLogger, t)
 
-	if provider.GetProvider() != "azure" {
-		t.Logf("this test is not implemented on %#q yet, skipping", provider.GetProvider())
-		t.SkipNow()
-		return
-	}
-
 	cpCtrlClient, err := ctrlclient.CreateCPCtrlClient()
 	if err != nil {
 		t.Fatalf("error creating CP k8s client: %v", err)
