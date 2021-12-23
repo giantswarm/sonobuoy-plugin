@@ -16,6 +16,8 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
+	"github.com/giantswarm/sonobuoy-plugin/v5/pkg/provider"
+
 	"github.com/giantswarm/sonobuoy-plugin/v5/pkg/capiutil"
 	"github.com/giantswarm/sonobuoy-plugin/v5/pkg/ctrlclient"
 )
@@ -49,6 +51,12 @@ func Test_Autoscaler(t *testing.T) {
 	}
 
 	logger := NewTestLogger(regularLogger, t)
+
+	if provider.GetProvider() != "azure" {
+		t.Logf("this test is not implemented on %#q yet, skipping", provider.GetProvider())
+		t.SkipNow()
+		return
+	}
 
 	clusterID, exists := os.LookupEnv("CLUSTER_ID")
 	if !exists {

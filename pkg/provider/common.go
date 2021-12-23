@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/giantswarm/microerror"
+	"github.com/giantswarm/micrologger"
 	capi "sigs.k8s.io/cluster-api/api/v1alpha3"
 	ctrl "sigs.k8s.io/controller-runtime/pkg/client"
 )
@@ -20,10 +21,17 @@ func GetProvider() string {
 	return strings.TrimSpace(provider)
 }
 
-func GetProviderSupport(ctx context.Context, client ctrl.Client, cluster *capi.Cluster) (Support, error) {
+func GetProviderSupport(ctx context.Context, logger micrologger.Logger, client ctrl.Client, cluster *capi.Cluster) (Support, error) {
 	switch GetProvider() {
 	case "azure":
-		p, err := NewAzureProviderSupport(ctx, client, cluster)
+		p, err := NewAzureProviderSupport(ctx, logger, client, cluster)
+		if err != nil {
+			return nil, microerror.Mask(err)
+		}
+
+		return p, nil
+	case "aws":
+		p, err := NewAWSProviderSupport(ctx, logger, client, cluster)
 		if err != nil {
 			return nil, microerror.Mask(err)
 		}

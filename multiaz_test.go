@@ -2,18 +2,13 @@ package sonobuoy_plugin
 
 import (
 	"context"
-	"errors"
 	"os"
 	"reflect"
 	"sort"
 	"testing"
 
-	"github.com/giantswarm/backoff"
 	"github.com/giantswarm/microerror"
 	"github.com/giantswarm/micrologger"
-	capi "sigs.k8s.io/cluster-api/api/v1alpha3"
-	capiconditions "sigs.k8s.io/cluster-api/util/conditions"
-	ctrl "sigs.k8s.io/controller-runtime/pkg/client"
 
 	"github.com/giantswarm/sonobuoy-plugin/v5/pkg/capiutil"
 	"github.com/giantswarm/sonobuoy-plugin/v5/pkg/ctrlclient"
@@ -54,54 +49,34 @@ func Test_AvailabilityZones(t *testing.T) {
 		t.Fatalf("error finding cluster: %s", microerror.JSON(err))
 	}
 
-	providerSupport, err := provider.GetProviderSupport(ctx, cpCtrlClient, cluster)
+	providerSupport, err := provider.GetProviderSupport(ctx, logger, cpCtrlClient, cluster)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	machinePool, err := providerSupport.CreateNodePool(ctx, cpCtrlClient, cluster, providerSupport.GetProviderAZs())
+	machinePoolObjectKey, err := providerSupport.CreateNodePoolAndWaitReady(ctx, cpCtrlClient, cluster, providerSupport.GetProviderAZs())
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	t.Cleanup(func() {
-		_ = cpCtrlClient.Delete(ctx, machinePool)
+		_ = providerSupport.DeleteNodePool(ctx, cpCtrlClient, *machinePoolObjectKey)
 	})
 
-	// Wait for Node Pool to come up.
-	{
-		o := func() error {
-			err := cpCtrlClient.Get(ctx, ctrl.ObjectKey{Name: machinePool.Name, Namespace: machinePool.Namespace}, machinePool)
-			if err != nil {
-				// Wrap masked error with backoff.Permanent() to stop retries on unrecoverable error.
-				return backoff.Permanent(microerror.Mask(err))
-			}
-
-			// Return error for retry until node pool nodes are Ready.
-			if !capiconditions.IsTrue(machinePool, capi.ReadyCondition) {
-				return errors.New("node pool is not ready yet")
-			}
-
-			return nil
-		}
-		b := backoff.NewConstant(backoff.LongMaxWait, backoff.LongMaxInterval)
-		n := backoff.NewNotifier(logger, ctx)
-		err = backoff.RetryNotify(o, b, n)
-		if err != nil {
-			t.Fatalf("failed to get MachinePool %q for Cluster %q: %s", machinePool.Name, clusterID, microerror.JSON(err))
-		}
+	k8sZones, err := providerSupport.GetNodePoolAZsInCR(ctx, cpCtrlClient, *machinePoolObjectKey)
+	if err != nil {
+		t.Fatal(err)
 	}
 
-	expectedZones := machinePool.Spec.FailureDomains
-	actualZones, err := providerSupport.GetNodePoolAZs(ctx, cluster.Name, machinePool.Name)
+	actualZones, err := providerSupport.GetNodePoolAZsInProvider(ctx, cluster.Name, machinePoolObjectKey.Name)
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	sort.Strings(actualZones)
-	sort.Strings(expectedZones)
+	sort.Strings(k8sZones)
 
-	if !reflect.DeepEqual(actualZones, expectedZones) {
-		t.Fatalf("The AZs used are not correct. Expected %s, got %s", expectedZones, actualZones)
+	if !reflect.DeepEqual(actualZones, k8sZones) {
+		t.Fatalf("The AZs used are not correct. Expected %s, got %s", k8sZones, actualZones)
 	}
 }
