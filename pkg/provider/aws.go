@@ -102,7 +102,7 @@ func (p *AWSProviderSupport) CreateNodePoolAndWaitReady(ctx context.Context, cli
 }
 
 func (p *AWSProviderSupport) DeleteNodePool(ctx context.Context, client ctrl.Client, objKey ctrl.ObjectKey) error {
-	mp := &v1alpha3.AWSMachineDeployment{}
+	mp := &capi.MachineDeployment{}
 
 	err := client.Get(ctx, objKey, mp)
 	if err != nil {
