@@ -112,6 +112,41 @@ func (p *AWSProviderSupport) DeleteNodePool(ctx context.Context, client ctrl.Cli
 	return client.Delete(ctx, mp)
 }
 
+func (p *AWSProviderSupport) GetNodeSelectorLabel() string {
+	return "giantswarm.io/machine-deployment"
+}
+
+func (p *AWSProviderSupport) GetTestingMachinePoolForCluster(ctx context.Context, client ctrl.Client, clusterID string) (string, error) {
+	var machinePoolName string
+	{
+		var machinePools []capi.MachineDeployment
+		{
+			var machinePoolList capi.MachineDeploymentList
+			err := client.List(ctx, &machinePoolList, ctrl.MatchingLabels{capi.ClusterLabelName: clusterID})
+			if err != nil {
+				return "", microerror.Mask(err)
+			}
+
+			for _, machinePool := range machinePoolList.Items {
+				_, isE2E := machinePool.Labels[capiutil.E2ENodepool]
+				if isE2E {
+					continue
+				}
+
+				machinePools = append(machinePools, machinePool)
+			}
+		}
+
+		if len(machinePools) == 0 {
+			return "", fmt.Errorf("expected one machine pool to exist, none found")
+		}
+
+		machinePoolName = machinePools[0].Name
+	}
+
+	return machinePoolName, nil
+}
+
 func (p *AWSProviderSupport) GetProviderAZs() []string {
 	return []string{
 		fmt.Sprintf("%sa", awsRegion),

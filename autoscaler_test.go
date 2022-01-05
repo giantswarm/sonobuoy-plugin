@@ -16,10 +16,9 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	"github.com/giantswarm/sonobuoy-plugin/v5/pkg/provider"
-
 	"github.com/giantswarm/sonobuoy-plugin/v5/pkg/capiutil"
 	"github.com/giantswarm/sonobuoy-plugin/v5/pkg/ctrlclient"
+	"github.com/giantswarm/sonobuoy-plugin/v5/pkg/provider"
 )
 
 const (
@@ -52,35 +51,32 @@ func Test_Autoscaler(t *testing.T) {
 
 	logger := NewTestLogger(regularLogger, t)
 
-	if provider.GetProvider() != "azure" {
-		t.Logf("this test is not implemented on %#q yet, skipping", provider.GetProvider())
-		t.SkipNow()
-		return
-	}
-
 	clusterID, exists := os.LookupEnv("CLUSTER_ID")
 	if !exists {
 		t.Fatal("missing CLUSTER_ID environment variable")
 	}
 
-	var machinePoolName string
-	{
-		machinePools, err := capiutil.FindNonTestingMachinePoolsForCluster(ctx, cpCtrlClient, clusterID)
-		if err != nil {
-			t.Fatalf("error finding MachinePools for cluster %q: %s", clusterID, microerror.JSON(err))
-		}
+	cluster, err := capiutil.FindCluster(ctx, cpCtrlClient, clusterID)
+	if err != nil {
+		t.Fatalf("error finding cluster: %s", microerror.JSON(err))
+	}
 
-		if len(machinePools) == 0 {
-			t.Fatal("Expected one machine pool to exist, none found.")
-		}
+	providerSupport, err := provider.GetProviderSupport(ctx, logger, cpCtrlClient, cluster)
+	if err != nil {
+		t.Fatal(err)
+	}
 
-		machinePoolName = machinePools[0].Name
+	machinePoolName, err := providerSupport.GetTestingMachinePoolForCluster(ctx, cpCtrlClient, clusterID)
+	if err != nil {
+		t.Fatalf("error finding MachinePools for cluster %q: %s", clusterID, microerror.JSON(err))
 	}
 
 	logger.Debugf(ctx, "Testing the Cluster Autoscaler with machine pool %s", machinePoolName)
 	logger.Debugf(ctx, "Creating %s deployment", helloWorldDeploymentName)
 
-	deployment, err := createDeployment(ctx, tcCtrlClient, 1, machinePoolName)
+	nodeSelectorLabel := providerSupport.GetNodeSelectorLabel()
+
+	deployment, err := createDeployment(ctx, tcCtrlClient, 1, machinePoolName, nodeSelectorLabel)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -90,7 +86,7 @@ func Test_Autoscaler(t *testing.T) {
 	})
 
 	// Get number of worker nodes.
-	workersCount, err := getWorkersCount(ctx, tcCtrlClient, machinePoolName)
+	workersCount, err := getWorkersCount(ctx, tcCtrlClient, machinePoolName, nodeSelectorLabel)
 	if err != nil {
 		t.Fatalf("%v", err)
 	}
@@ -109,7 +105,7 @@ func Test_Autoscaler(t *testing.T) {
 
 	// Wait for nodes to increase by one.
 	o := func() error {
-		workersCount, err := getWorkersCount(ctx, tcCtrlClient, machinePoolName)
+		workersCount, err := getWorkersCount(ctx, tcCtrlClient, machinePoolName, nodeSelectorLabel)
 		if err != nil {
 			return microerror.Mask(err)
 		}
@@ -142,9 +138,9 @@ func Test_Autoscaler(t *testing.T) {
 	}
 }
 
-func getWorkersCount(ctx context.Context, ctrlClient client.Client, machinePoolName string) (int, error) {
+func getWorkersCount(ctx context.Context, ctrlClient client.Client, machinePoolName string, labelSelector string) (int, error) {
 	workers := &corev1.NodeList{}
-	err := ctrlClient.List(ctx, workers, client.MatchingLabels{"kubernetes.io/role": "worker", "giantswarm.io/machine-pool": machinePoolName})
+	err := ctrlClient.List(ctx, workers, client.MatchingLabels{"kubernetes.io/role": "worker", labelSelector: machinePoolName})
 	if err != nil {
 		return -1, err
 	}
@@ -183,7 +179,7 @@ func scaleDeployment(ctx context.Context, ctrlClient client.Client, expectedWork
 	return nil
 }
 
-func createDeployment(ctx context.Context, ctrlClient client.Client, replicas int32, machinePoolName string) (*appsv1.Deployment, error) {
+func createDeployment(ctx context.Context, ctrlClient client.Client, replicas int32, machinePoolName string, nodeSelectorLabel string) (*appsv1.Deployment, error) {
 	deployment := &appsv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      helloWorldDeploymentName,
@@ -222,7 +218,7 @@ func createDeployment(ctx context.Context, ctrlClient client.Client, replicas in
 						},
 					},
 					NodeSelector: map[string]string{
-						"giantswarm.io/machine-pool": machinePoolName,
+						nodeSelectorLabel: machinePoolName,
 					},
 					SecurityContext: &corev1.PodSecurityContext{
 						RunAsUser: to.Int64Ptr(1000),
