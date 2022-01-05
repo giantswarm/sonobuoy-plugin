@@ -111,6 +111,28 @@ func (p *AzureProviderSupport) DeleteNodePool(ctx context.Context, client ctrl.C
 	return client.Delete(ctx, mp)
 }
 
+func (p *AzureProviderSupport) GetNodeSelectorLabel() string {
+	return "giantswarm.io/machine-pool"
+}
+
+func (p *AzureProviderSupport) GetTestingMachinePoolForCluster(ctx context.Context, client ctrl.Client, clusterID string) (string, error) {
+	var machinePoolName string
+	{
+		machinePools, err := capiutil.FindNonTestingMachinePoolsForCluster(ctx, client, clusterID)
+		if err != nil {
+			return "", fmt.Errorf("error finding MachinePools for cluster %q: %s", clusterID, microerror.JSON(err))
+		}
+
+		if len(machinePools) == 0 {
+			return "", fmt.Errorf("expected one machine pool to exist, none found")
+		}
+
+		machinePoolName = machinePools[0].Name
+	}
+
+	return machinePoolName, nil
+}
+
 func (p *AzureProviderSupport) GetProviderAZs() []string {
 	return []string{"1", "2", "3"}
 }
