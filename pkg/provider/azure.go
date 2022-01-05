@@ -2,13 +2,16 @@ package provider
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	"github.com/Azure/go-autorest/autorest/to"
 	"github.com/giantswarm/apiextensions/v3/pkg/annotation"
 	corev1alpha1 "github.com/giantswarm/apiextensions/v3/pkg/apis/core/v1alpha1"
 	"github.com/giantswarm/apiextensions/v3/pkg/label"
+	"github.com/giantswarm/backoff"
 	"github.com/giantswarm/microerror"
+	"github.com/giantswarm/micrologger"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -17,6 +20,7 @@ import (
 	expcapz "sigs.k8s.io/cluster-api-provider-azure/exp/api/v1alpha3"
 	capi "sigs.k8s.io/cluster-api/api/v1alpha3"
 	expcapi "sigs.k8s.io/cluster-api/exp/api/v1alpha3"
+	capiconditions "sigs.k8s.io/cluster-api/util/conditions"
 	ctrl "sigs.k8s.io/controller-runtime/pkg/client"
 
 	"github.com/giantswarm/sonobuoy-plugin/v5/pkg/azure"
@@ -30,10 +34,11 @@ const (
 )
 
 type AzureProviderSupport struct {
+	logger      micrologger.Logger
 	azureClient *azure.Client
 }
 
-func NewAzureProviderSupport(ctx context.Context, client ctrl.Client, cluster *capi.Cluster) (Support, error) {
+func NewAzureProviderSupport(ctx context.Context, logger micrologger.Logger, client ctrl.Client, cluster *capi.Cluster) (Support, error) {
 	sp, err := credentials.ForCluster(ctx, client, cluster)
 	if err != nil {
 		return nil, microerror.Mask(err)
@@ -46,12 +51,13 @@ func NewAzureProviderSupport(ctx context.Context, client ctrl.Client, cluster *c
 
 	p := &AzureProviderSupport{
 		azureClient: azureClient,
+		logger:      logger,
 	}
 
 	return p, nil
 }
 
-func (p *AzureProviderSupport) CreateNodePool(ctx context.Context, client ctrl.Client, cluster *capi.Cluster, azs []string) (*expcapi.MachinePool, error) {
+func (p *AzureProviderSupport) CreateNodePoolAndWaitReady(ctx context.Context, client ctrl.Client, cluster *capi.Cluster, azs []string) (*ctrl.ObjectKey, error) {
 	azureMP, err := p.createAzureMachinePool(ctx, client, cluster, azs)
 	if err != nil {
 		return nil, microerror.Mask(err)
@@ -67,14 +73,60 @@ func (p *AzureProviderSupport) CreateNodePool(ctx context.Context, client ctrl.C
 		return nil, microerror.Mask(err)
 	}
 
-	return mp, nil
+	// Wait for Node Pool to come up.
+	{
+		o := func() error {
+			err := client.Get(ctx, ctrl.ObjectKey{Name: mp.Name, Namespace: mp.Namespace}, mp)
+			if err != nil {
+				// Wrap masked error with backoff.Permanent() to stop retries on unrecoverable error.
+				return backoff.Permanent(microerror.Mask(err))
+			}
+
+			// Return error for retry until node pool nodes are Ready.
+			if !capiconditions.IsTrue(mp, capi.ReadyCondition) {
+				return errors.New("node pool is not ready yet")
+			}
+
+			return nil
+		}
+		b := backoff.NewConstant(backoff.LongMaxWait, backoff.LongMaxInterval)
+		n := backoff.NewNotifier(p.logger, ctx)
+		err = backoff.RetryNotify(o, b, n)
+		if err != nil {
+			return nil, microerror.Mask(fmt.Errorf("failed to get MachinePool %q for Cluster %q: %s", mp.Name, cluster.Name, microerror.JSON(err)))
+		}
+	}
+
+	return &ctrl.ObjectKey{Name: mp.Name, Namespace: mp.Namespace}, nil
+}
+
+func (p *AzureProviderSupport) DeleteNodePool(ctx context.Context, client ctrl.Client, objKey ctrl.ObjectKey) error {
+	mp := &expcapi.MachinePool{}
+
+	err := client.Get(ctx, objKey, mp)
+	if err != nil {
+		return microerror.Mask(err)
+	}
+
+	return client.Delete(ctx, mp)
 }
 
 func (p *AzureProviderSupport) GetProviderAZs() []string {
 	return []string{"1", "2", "3"}
 }
 
-func (p *AzureProviderSupport) GetNodePoolAZs(ctx context.Context, clusterID, nodepoolID string) ([]string, error) {
+func (p *AzureProviderSupport) GetNodePoolAZsInCR(ctx context.Context, client ctrl.Client, objKey ctrl.ObjectKey) ([]string, error) {
+	mp := &expcapi.MachinePool{}
+
+	err := client.Get(ctx, objKey, mp)
+	if err != nil {
+		return nil, microerror.Mask(err)
+	}
+
+	return mp.Spec.FailureDomains, nil
+}
+
+func (p *AzureProviderSupport) GetNodePoolAZsInProvider(ctx context.Context, clusterID, nodepoolID string) ([]string, error) {
 	var zones []string
 	nodepoolVMSSName := fmt.Sprintf("nodepool-%s", nodepoolID)
 	vmss, err := p.azureClient.VMSS.Get(ctx, clusterID, nodepoolVMSSName)
