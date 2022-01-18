@@ -7,6 +7,7 @@ import (
 	releasev1alpha1 "github.com/giantswarm/apiextensions/v3/pkg/apis/release/v1alpha1"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
+	networkingv1 "k8s.io/api/networking/v1"
 	"k8s.io/apiextensions-apiserver/pkg/apis/apiextensions"
 	"k8s.io/apimachinery/pkg/runtime"
 	capz "sigs.k8s.io/cluster-api-provider-azure/api/v1alpha3"
@@ -30,6 +31,7 @@ func init() {
 		releasev1alpha1.AddToScheme,
 		appv1alpha1.AddToScheme,
 		infastructurev1alpha3.AddToScheme,
+		networkingv1.AddToScheme,
 	}
 	err := schemeBuilder.AddToScheme(Scheme)
 	if err != nil {
