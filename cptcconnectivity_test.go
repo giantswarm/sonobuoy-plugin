@@ -78,10 +78,7 @@ func Test_CPTCConnectivity(t *testing.T) {
 	})
 
 	o := func() error {
-		objectKey, err := client.ObjectKeyFromObject(pod)
-		if err != nil {
-			return microerror.Mask(err)
-		}
+		objectKey := client.ObjectKeyFromObject(pod)
 		scheduledPod := &corev1.Pod{}
 		err = cpCtrlClient.Get(ctx, objectKey, scheduledPod)
 		if err != nil {
