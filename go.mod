@@ -18,13 +18,13 @@ require (
 	k8s.io/apiextensions-apiserver v0.23.1
 	k8s.io/apimachinery v0.23.1
 	k8s.io/client-go v0.23.1
-	sigs.k8s.io/cluster-api v1.0.2
-	sigs.k8s.io/cluster-api-provider-azure v1.1.0
+	sigs.k8s.io/cluster-api v0.4.5
+	sigs.k8s.io/cluster-api-provider-azure v0.5.3
 	sigs.k8s.io/controller-runtime v0.10.3
 )
 
 replace (
 	github.com/go-logr/logr => github.com/go-logr/logr v0.4.0
 	k8s.io/klog/v2 => k8s.io/klog/v2 v2.10.0
-	sigs.k8s.io/cluster-api => sigs.k8s.io/cluster-api v1.0.2
+	sigs.k8s.io/cluster-api => sigs.k8s.io/cluster-api v0.4.5
 )

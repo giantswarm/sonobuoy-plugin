@@ -3,7 +3,7 @@ package provider
 import (
 	"context"
 
-	capi "sigs.k8s.io/cluster-api/api/v1beta1"
+	capi "sigs.k8s.io/cluster-api/api/v1alpha4"
 	ctrl "sigs.k8s.io/controller-runtime/pkg/client"
 )
 
