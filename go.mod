@@ -28,7 +28,7 @@ require (
 	k8s.io/utils v0.0.0-20210709001253-0e1f9d693477 // indirect
 	sigs.k8s.io/cluster-api v0.3.22
 	sigs.k8s.io/cluster-api-provider-azure v0.4.9
-	sigs.k8s.io/controller-runtime v0.6.4
+	sigs.k8s.io/controller-runtime v0.6.5
 )
 
 replace (
