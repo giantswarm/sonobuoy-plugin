@@ -5,7 +5,7 @@ import (
 
 	"github.com/giantswarm/backoff"
 	"github.com/giantswarm/microerror"
-	capi "sigs.k8s.io/cluster-api/api/v1alpha4"
+	capi "sigs.k8s.io/cluster-api/api/v1alpha3"
 )
 
 const E2ENodepool = "e2e"
