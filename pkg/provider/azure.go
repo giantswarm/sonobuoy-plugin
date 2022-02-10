@@ -16,10 +16,10 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/tools/reference"
-	capz "sigs.k8s.io/cluster-api-provider-azure/api/v1alpha4"
+	capz "sigs.k8s.io/cluster-api-provider-azure/api/v1alpha3"
 	expcapz "sigs.k8s.io/cluster-api-provider-azure/exp/api/v1alpha3"
 	capi "sigs.k8s.io/cluster-api/api/v1alpha3"
-	expcapi "sigs.k8s.io/cluster-api/exp/api/v1alpha4"
+	expcapi "sigs.k8s.io/cluster-api/exp/api/v1alpha3"
 	capiconditions "sigs.k8s.io/cluster-api/util/conditions"
 	ctrl "sigs.k8s.io/controller-runtime/pkg/client"
 
@@ -264,7 +264,7 @@ func (p *AzureProviderSupport) createAzureMachinePool(ctx context.Context, clien
 		},
 		Spec: expcapz.AzureMachinePoolSpec{
 			Location: azureCluster.Spec.Location,
-			Template: expcapz.AzureMachinePoolMachineTemplate{
+			Template: expcapz.AzureMachineTemplate{
 				DataDisks: []capz.DataDisk{
 					{
 						NameSuffix: "docker",
