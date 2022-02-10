@@ -68,6 +68,10 @@ func Test_NetworkPolicy(t *testing.T) {
 				t.Fatal(err)
 			}
 
+			if len(pod.Status.ContainerStatuses) == 0 {
+				return fmt.Errorf("expected pod %s to be have 'ContainerStatuses' but it still has none", successfulPodName)
+			}
+
 			cs := pod.Status.ContainerStatuses[0]
 
 			if cs.State.Terminated != nil {
