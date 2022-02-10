@@ -6,7 +6,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/Azure/go-autorest/autorest/to"
 	"github.com/giantswarm/backoff"
 	"github.com/giantswarm/microerror"
 	"github.com/giantswarm/micrologger"
@@ -47,14 +46,17 @@ func Test_NetworkPolicy(t *testing.T) {
 
 	logger.Debugf(ctx, "Testing network policies")
 
-	resources, err := createPodsAndNPs(ctx, tcCtrlClient)
+	networkPolicies, pods, err := createPodsAndNPs(ctx, tcCtrlClient)
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	t.Cleanup(func() {
-		for _, resource := range resources {
-			_ = tcCtrlClient.Delete(ctx, resource)
+		for _, netpol := range networkPolicies {
+			_ = tcCtrlClient.Delete(ctx, netpol)
+		}
+		for _, pod := range pods {
+			_ = tcCtrlClient.Delete(ctx, pod)
 		}
 	})
 
@@ -127,8 +129,9 @@ func Test_NetworkPolicy(t *testing.T) {
 	}
 }
 
-func createPodsAndNPs(ctx context.Context, ctrlClient client.Client) ([]client.Object, error) {
-	var objects []client.Object
+func createPodsAndNPs(ctx context.Context, ctrlClient client.Client) ([]*networkingv1.NetworkPolicy, []*corev1.Pod, error) {
+	var networkPolicies []*networkingv1.NetworkPolicy
+	var pods []*corev1.Pod
 
 	labels := map[string]string{
 		"test": "network-policy-test",
@@ -142,7 +145,7 @@ func createPodsAndNPs(ctx context.Context, ctrlClient client.Client) ([]client.O
 		return &r
 	}
 
-	objects = append(objects, &networkingv1.NetworkPolicy{
+	networkPolicies = append(networkPolicies, &networkingv1.NetworkPolicy{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "network-policy-test",
 			Namespace: npTestNamespace,
@@ -183,8 +186,7 @@ func createPodsAndNPs(ctx context.Context, ctrlClient client.Client) ([]client.O
 					Ports: []networkingv1.NetworkPolicyPort{
 						{
 							Protocol: &tcp,
-							Port:     getPortPtr(79),
-							EndPort:  to.Int32Ptr(81),
+							Port:     getPortPtr(80),
 						},
 					},
 				},
@@ -194,7 +196,7 @@ func createPodsAndNPs(ctx context.Context, ctrlClient client.Client) ([]client.O
 
 	// Successful pod and NetworkPolicy.
 	{
-		objects = append(objects, &corev1.Pod{
+		pods = append(pods, &corev1.Pod{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      successfulPodName,
 				Namespace: npTestNamespace,
@@ -223,7 +225,7 @@ func createPodsAndNPs(ctx context.Context, ctrlClient client.Client) ([]client.O
 
 	// Failure pod and NetworkPolicy.
 	{
-		objects = append(objects, &corev1.Pod{
+		pods = append(pods, &corev1.Pod{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      failurePodName,
 				Namespace: npTestNamespace,
@@ -250,15 +252,25 @@ func createPodsAndNPs(ctx context.Context, ctrlClient client.Client) ([]client.O
 		})
 	}
 
-	for _, obj := range objects {
+	for _, obj := range networkPolicies {
 		// Delete the object in case it's there to allow for running test more than once.
 		_ = ctrlClient.Delete(ctx, obj)
 
 		err := ctrlClient.Create(ctx, obj)
 		if err != nil {
-			return nil, microerror.Mask(err)
+			return nil, nil, microerror.Mask(err)
 		}
 	}
 
-	return objects, nil
+	for _, obj := range pods {
+		// Delete the object in case it's there to allow for running test more than once.
+		_ = ctrlClient.Delete(ctx, obj)
+
+		err := ctrlClient.Create(ctx, obj)
+		if err != nil {
+			return nil, nil, microerror.Mask(err)
+		}
+	}
+
+	return networkPolicies, pods, nil
 }
