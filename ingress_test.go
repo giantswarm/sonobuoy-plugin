@@ -111,7 +111,7 @@ func Test_Ingress(t *testing.T) {
 			Name:               "nginx-ingress-controller-app",
 			Namespace:          "kube-system",
 			ValuesYAML:         fmt.Sprintf(NginxIngressValues, baseDomain),
-			Version:            "1.11.0",
+			Version:            "2.9.0",
 			WaitForDeploy:      true,
 		},
 		{
