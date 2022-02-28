@@ -122,7 +122,7 @@ func Test_Ingress(t *testing.T) {
 			Name:               helloWorldAppName,
 			Namespace:          "default",
 			ValuesYAML:         fmt.Sprintf(HelloWorldValues, appEndpoint),
-			Version:            "0.4.0",
+			Version:            "0.4.2",
 			WaitForDeploy:      true,
 		},
 	}
