@@ -4,8 +4,8 @@ Sonobuoy plugin that runs some tests as a sonobuoy plugin.
 
 ## Running the plugin
 
-The tests that will be executed by the plugin need kubeconfigs to access the Control Plane Cluster, and the Tenant Cluster.
-**So these cluster need to exist before running the tests.**
+The tests that will be executed by the plugin need kubeconfigs to access the Management Cluster and the Workload Cluster.
+**These clusters need to exist before running the tests.**
 
 The required kubeconfigs are passed as environment variables. We can generate them from our local kubeconfig file.
 For example, if our kubeconfig points to the Control Plane cluster, we can generate the Control Plane kubeconfig
