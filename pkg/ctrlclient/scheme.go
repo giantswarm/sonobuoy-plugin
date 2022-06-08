@@ -10,10 +10,10 @@ import (
 	networkingv1 "k8s.io/api/networking/v1"
 	"k8s.io/apiextensions-apiserver/pkg/apis/apiextensions"
 	"k8s.io/apimachinery/pkg/runtime"
-	capz "sigs.k8s.io/cluster-api-provider-azure/api/v1alpha3"
-	expcapz "sigs.k8s.io/cluster-api-provider-azure/exp/api/v1alpha3"
+	capz "sigs.k8s.io/cluster-api-provider-azure/api/v1beta1"
+	expcapz "sigs.k8s.io/cluster-api-provider-azure/exp/api/v1beta1"
 	capi "sigs.k8s.io/cluster-api/api/v1beta1"
-	expcapi "sigs.k8s.io/cluster-api/exp/api/v1alpha3"
+	expcapi "sigs.k8s.io/cluster-api/exp/api/v1beta1"
 )
 
 var Scheme = runtime.NewScheme()
