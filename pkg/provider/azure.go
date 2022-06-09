@@ -277,6 +277,11 @@ func (p *AzureProviderSupport) createAzureMachinePool(ctx context.Context, clien
 						Lun:        to.Int32Ptr(22),
 					},
 				},
+				OSDisk: capz.OSDisk{
+					ManagedDisk: &capz.ManagedDiskParameters{
+						StorageAccountType: "Standard_LRS",
+					},
+				},
 				VMSize: defaultVMSize,
 			},
 		},
