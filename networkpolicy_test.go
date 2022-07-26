@@ -162,8 +162,15 @@ func createPodsAndNPs(ctx context.Context, ctrlClient client.Client) ([]*network
 				{
 					To: []networkingv1.NetworkPolicyPeer{
 						{
-							IPBlock: &networkingv1.IPBlock{
-								CIDR: "0.0.0.0/0",
+							PodSelector: &metav1.LabelSelector{
+								MatchLabels: map[string]string{
+									"k8s-app": "coredns",
+								},
+							},
+							NamespaceSelector: &metav1.LabelSelector{
+								MatchLabels: map[string]string{
+									"name": "kube-system",
+								},
 							},
 						},
 					},
@@ -171,6 +178,9 @@ func createPodsAndNPs(ctx context.Context, ctrlClient client.Client) ([]*network
 						{
 							Protocol: &udp,
 							Port:     getPortPtr(1053),
+						}, {
+							Protocol: &udp,
+							Port:     getPortPtr(53),
 						},
 					},
 				},
