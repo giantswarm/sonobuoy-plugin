@@ -8,6 +8,7 @@ import (
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	networkingv1 "k8s.io/api/networking/v1"
+	storagev1 "k8s.io/api/storage/v1"
 	"k8s.io/apiextensions-apiserver/pkg/apis/apiextensions"
 	"k8s.io/apimachinery/pkg/runtime"
 	capz "sigs.k8s.io/cluster-api-provider-azure/api/v1beta1"
@@ -32,6 +33,7 @@ func init() {
 		appv1alpha1.AddToScheme,
 		infastructurev1alpha3.AddToScheme,
 		networkingv1.AddToScheme,
+		storagev1.AddToScheme,
 	}
 	err := schemeBuilder.AddToScheme(Scheme)
 	if err != nil {
