@@ -61,13 +61,13 @@ func NewAWSProviderSupport(ctx context.Context, logger micrologger.Logger, clien
 	return p, nil
 }
 
-func (p *AWSProviderSupport) CreateNodePoolAndWaitReady(ctx context.Context, client ctrl.Client, cluster *capi.Cluster, azs []string) (*ctrl.ObjectKey, error) {
+func (p *AWSProviderSupport) CreateNodePoolAndWaitReady(ctx context.Context, client ctrl.Client, cluster *capi.Cluster, azs []string, cgroupsv1 bool) (*ctrl.ObjectKey, error) {
 	awsMP, err := p.createAwsMachineDeployment(ctx, client, cluster, azs)
 	if err != nil {
 		return nil, microerror.Mask(err)
 	}
 
-	mp, err := p.createMachineDeployment(ctx, client, cluster, awsMP, azs)
+	mp, err := p.createMachineDeployment(ctx, client, cluster, awsMP, azs, cgroupsv1)
 	if err != nil {
 		return nil, microerror.Mask(err)
 	}
@@ -200,7 +200,7 @@ func (p *AWSProviderSupport) GetNodePoolAZsInProvider(ctx context.Context, clust
 	return zones, nil
 }
 
-func (p *AWSProviderSupport) createMachineDeployment(ctx context.Context, client ctrl.Client, cluster *capi.Cluster, awsMachineDeployment *v1alpha3.AWSMachineDeployment, azs []string) (*capi.MachineDeployment, error) {
+func (p *AWSProviderSupport) createMachineDeployment(ctx context.Context, client ctrl.Client, cluster *capi.Cluster, awsMachineDeployment *v1alpha3.AWSMachineDeployment, azs []string, cgroupsv1 bool) (*capi.MachineDeployment, error) {
 	var infrastructureCRRef *corev1.ObjectReference
 	{
 		s := runtime.NewScheme()
@@ -213,6 +213,15 @@ func (p *AWSProviderSupport) createMachineDeployment(ctx context.Context, client
 		if err != nil {
 			panic(fmt.Sprintf("cannot create reference to infrastructure CR: %q", err))
 		}
+	}
+
+	annotations := map[string]string{
+		annotation.MachinePoolName: "cgroups v1",
+		annotation.NodePoolMinSize: "3",
+		annotation.NodePoolMaxSize: "3",
+	}
+	if cgroupsv1 {
+		annotations["node.giantswarm.io/cgroupv1"] = ""
 	}
 
 	machineDeployment := &capi.MachineDeployment{
@@ -228,11 +237,7 @@ func (p *AWSProviderSupport) createMachineDeployment(ctx context.Context, client
 				label.ReleaseVersion:     cluster.Labels[label.ReleaseVersion],
 				capiutil.E2ENodepool:     "true",
 			},
-			Annotations: map[string]string{
-				annotation.MachinePoolName: "availability zone verification e2e test",
-				annotation.NodePoolMinSize: fmt.Sprintf("%d", len(azs)),
-				annotation.NodePoolMaxSize: fmt.Sprintf("%d", len(azs)),
-			},
+			Annotations: annotations,
 		},
 		Spec: capi.MachineDeploymentSpec{
 			ClusterName: cluster.Name,
