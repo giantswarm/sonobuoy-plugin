@@ -54,7 +54,7 @@ func Test_AvailabilityZones(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	machinePoolObjectKey, err := providerSupport.CreateNodePoolAndWaitReady(ctx, cpCtrlClient, cluster, providerSupport.GetProviderAZs())
+	machinePoolObjectKey, err := providerSupport.CreateNodePoolAndWaitReady(ctx, cpCtrlClient, cluster, providerSupport.GetProviderAZs(), false)
 	if err != nil {
 		t.Fatal(err)
 	}

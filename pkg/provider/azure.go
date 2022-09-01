@@ -57,7 +57,7 @@ func NewAzureProviderSupport(ctx context.Context, logger micrologger.Logger, cli
 	return p, nil
 }
 
-func (p *AzureProviderSupport) CreateNodePoolAndWaitReady(ctx context.Context, client ctrl.Client, cluster *capi.Cluster, azs []string) (*ctrl.ObjectKey, error) {
+func (p *AzureProviderSupport) CreateNodePoolAndWaitReady(ctx context.Context, client ctrl.Client, cluster *capi.Cluster, azs []string, cgroupsv1 bool) (*ctrl.ObjectKey, error) {
 	azureMP, err := p.createAzureMachinePool(ctx, client, cluster, azs)
 	if err != nil {
 		return nil, microerror.Mask(err)
@@ -68,7 +68,7 @@ func (p *AzureProviderSupport) CreateNodePoolAndWaitReady(ctx context.Context, c
 		return nil, microerror.Mask(err)
 	}
 
-	mp, err := p.createMachinePool(ctx, client, cluster, azureMP, bootstrap, azs)
+	mp, err := p.createMachinePool(ctx, client, cluster, azureMP, bootstrap, azs, cgroupsv1)
 	if err != nil {
 		return nil, microerror.Mask(err)
 	}
@@ -163,7 +163,7 @@ func (p *AzureProviderSupport) GetNodePoolAZsInProvider(ctx context.Context, clu
 	return zones, nil
 }
 
-func (p *AzureProviderSupport) createMachinePool(ctx context.Context, client ctrl.Client, cluster *capi.Cluster, azureMachinePool *expcapz.AzureMachinePool, spark *corev1alpha1.Spark, azs []string) (*expcapi.MachinePool, error) {
+func (p *AzureProviderSupport) createMachinePool(ctx context.Context, client ctrl.Client, cluster *capi.Cluster, azureMachinePool *expcapz.AzureMachinePool, spark *corev1alpha1.Spark, azs []string, cgroupsv1 bool) (*expcapi.MachinePool, error) {
 	var infrastructureCRRef *corev1.ObjectReference
 	{
 		s := runtime.NewScheme()
@@ -192,6 +192,16 @@ func (p *AzureProviderSupport) createMachinePool(ctx context.Context, client ctr
 		}
 	}
 
+	annotations := map[string]string{
+		annotation.MachinePoolName: "cgroups v1",
+		annotation.NodePoolMinSize: "3",
+		annotation.NodePoolMaxSize: "3",
+	}
+
+	if cgroupsv1 {
+		annotations["node.giantswarm.io/cgroupv1"] = ""
+	}
+
 	machinePool := &expcapi.MachinePool{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      azureMachinePool.Name,
@@ -205,11 +215,7 @@ func (p *AzureProviderSupport) createMachinePool(ctx context.Context, client ctr
 				label.ReleaseVersion:       cluster.Labels[label.ReleaseVersion],
 				capiutil.E2ENodepool:       "true",
 			},
-			Annotations: map[string]string{
-				annotation.MachinePoolName: "availability zone verification e2e test",
-				annotation.NodePoolMinSize: fmt.Sprintf("%d", len(azs)),
-				annotation.NodePoolMaxSize: fmt.Sprintf("%d", len(azs)),
-			},
+			Annotations: annotations,
 		},
 		Spec: expcapi.MachinePoolSpec{
 			ClusterName:    cluster.Name,

@@ -8,7 +8,7 @@ import (
 )
 
 type Support interface {
-	CreateNodePoolAndWaitReady(ctx context.Context, client ctrl.Client, cluster *capi.Cluster, azs []string) (*ctrl.ObjectKey, error)
+	CreateNodePoolAndWaitReady(ctx context.Context, client ctrl.Client, cluster *capi.Cluster, azs []string, cgroupsv1 bool) (*ctrl.ObjectKey, error)
 	DeleteNodePool(ctx context.Context, client ctrl.Client, objKey ctrl.ObjectKey) error
 	GetNodeSelectorLabel() string
 	GetTestingMachinePoolForCluster(ctx context.Context, client ctrl.Client, clusterID string) (string, error)
