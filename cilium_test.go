@@ -26,7 +26,7 @@ import (
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
 	"k8s.io/client-go/tools/remotecommand"
-	capiv1alpha3 "sigs.k8s.io/cluster-api/api/v1beta1"
+	capiv1beta1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	"github.com/giantswarm/sonobuoy-plugin/v5/pkg/capiutil"
@@ -70,7 +70,7 @@ func Test_Cilium(t *testing.T) {
 	}
 
 	// Get Cluster.
-	var cluster *capiv1alpha3.Cluster
+	var cluster *capiv1beta1.Cluster
 	{
 		cluster, err = capiutil.FindCluster(ctx, cpCtrlClient, clusterID)
 		if err != nil {
