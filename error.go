@@ -8,6 +8,10 @@ var appNotReadyError = &microerror.Error{
 	Kind: "appNotReadyError",
 }
 
+var dsNotReadyError = &microerror.Error{
+	Kind: "dsNotReadyError",
+}
+
 var executionFailedError = &microerror.Error{
 	Kind: "executionFailedError",
 }
