@@ -20,8 +20,16 @@ var notFoundError = &microerror.Error{
 	Kind: "notFoundError",
 }
 
+var podNotReadyError = &microerror.Error{
+	Kind: "podNotReadyError",
+}
+
 var pvcUnboundError = &microerror.Error{
 	Kind: "pvcUnboundError",
+}
+
+var targetDownError = &microerror.Error{
+	Kind: "targetDownError",
 }
 
 // IsNotFound asserts notFoundError.
