@@ -59,7 +59,7 @@ func Test_Prometheus(t *testing.T) {
 			return nil
 		}
 
-		b := backoff.NewConstant(backoff.MediumMaxWait, 1*time.Minute)
+		b := backoff.NewConstant(backoff.LongMaxWait, 1*time.Minute)
 		n := backoff.NewNotifier(logger, ctx)
 		err = backoff.RetryNotify(o, b, n)
 		if err != nil {
@@ -88,11 +88,11 @@ func Test_Prometheus(t *testing.T) {
 			return nil
 		}
 
-		b := backoff.NewConstant(backoff.MediumMaxWait, 1*time.Minute)
+		b := backoff.NewConstant(backoff.LongMaxWait, 1*time.Minute)
 		n := backoff.NewNotifier(logger, ctx)
 		err = backoff.RetryNotify(o, b, n)
 		if err != nil {
-			t.Fatalf("Error waiting for prometheus namespace to exist.")
+			t.Fatalf("Error waiting for prometheus pod to be running.")
 		}
 	}
 
@@ -136,11 +136,11 @@ func Test_Prometheus(t *testing.T) {
 			return nil
 		}
 
-		b := backoff.NewConstant(backoff.MediumMaxWait, 1*time.Minute)
+		b := backoff.NewConstant(backoff.LongMaxWait, 1*time.Minute)
 		n := backoff.NewNotifier(logger, ctx)
 		err = backoff.RetryNotify(o, b, n)
 		if err != nil {
-			t.Fatalf("Error waiting for prometheus namespace to exist.")
+			t.Fatalf("Error waiting for prometheus targets to be healthy.")
 		}
 	}
 }
