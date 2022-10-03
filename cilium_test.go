@@ -1,12 +1,9 @@
 package sonobuoy_plugin
 
 import (
-	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
-	"io"
-	"net/url"
 	"os"
 	"strings"
 	"testing"
@@ -21,16 +18,12 @@ import (
 	v1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/client-go/kubernetes"
-	"k8s.io/client-go/kubernetes/scheme"
-	"k8s.io/client-go/rest"
-	"k8s.io/client-go/tools/clientcmd"
-	"k8s.io/client-go/tools/remotecommand"
 	capiv1beta1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	"github.com/giantswarm/sonobuoy-plugin/v5/pkg/capiutil"
 	"github.com/giantswarm/sonobuoy-plugin/v5/pkg/ctrlclient"
+	"github.com/giantswarm/sonobuoy-plugin/v5/pkg/podrunner"
 )
 
 const (
@@ -179,7 +172,12 @@ func Test_Cilium(t *testing.T) {
 
 	pod := pods.Items[0]
 
-	stdout, _, err := execWithOptions(ctx, logger, pod.Name, ciliumDsNamespace, "cilium-agent", []string{"cilium", "status", "-o", "json"})
+	kc, err := ctrlclient.GetTCKubeConfig()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	stdout, _, err := podrunner.ExecInPod(ctx, logger, pod.Name, ciliumDsNamespace, "cilium-agent", []string{"cilium", "status", "-o", "json"}, kc)
 	if err != nil {
 		t.Fatalf("Can't exec command in cilium pod %s.", pod.Name)
 	}
@@ -207,57 +205,4 @@ func Test_Cilium(t *testing.T) {
 	if response.Cluster.CiliumHealth.State != "Ok" {
 		t.Fatalf("Expected `cilium status -o json` to give 'Ok' under 'cilium.cluster.ciliumHealth.state', got %s.", response.Cluster.CiliumHealth.State)
 	}
-}
-
-func execWithOptions(ctx context.Context, logger micrologger.Logger, podName string, namespace string, containerName string, command []string) (string, string, error) {
-
-	logger.Debugf(ctx, "Running %v in container %q in pod %q", command, containerName, podName)
-
-	tty := true
-
-	kc, err := ctrlclient.GetTCKubeConfig()
-	if err != nil {
-		return "", "", microerror.Mask(err)
-	}
-
-	restCfg, err := clientcmd.RESTConfigFromKubeConfig(kc)
-	if err != nil {
-		return "", "", microerror.Mask(err)
-	}
-	coreClient, err := kubernetes.NewForConfig(restCfg)
-	if err != nil {
-		return "", "", microerror.Mask(err)
-	}
-
-	req := coreClient.CoreV1().RESTClient().Post().
-		Resource("pods").
-		Name(podName).
-		Namespace(namespace).
-		SubResource("exec").
-		Param("container", containerName)
-	req.VersionedParams(&corev1.PodExecOptions{
-		Container: containerName,
-		Command:   command,
-		Stdin:     false,
-		Stdout:    true,
-		Stderr:    true,
-		TTY:       tty,
-	}, scheme.ParameterCodec)
-
-	var stdout, stderr bytes.Buffer
-	err = execute("POST", req.URL(), restCfg, nil, &stdout, &stderr, tty)
-	return stdout.String(), stderr.String(), err
-}
-
-func execute(method string, url *url.URL, config *rest.Config, stdin io.Reader, stdout, stderr io.Writer, tty bool) error {
-	exec, err := remotecommand.NewSPDYExecutor(config, method, url)
-	if err != nil {
-		return err
-	}
-	return exec.Stream(remotecommand.StreamOptions{
-		Stdin:  stdin,
-		Stdout: stdout,
-		Stderr: stderr,
-		Tty:    tty,
-	})
 }
