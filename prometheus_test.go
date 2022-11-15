@@ -8,12 +8,16 @@ import (
 	"testing"
 	"time"
 
+	"github.com/blang/semver"
+	"github.com/giantswarm/apiextensions/v3/pkg/label"
 	"github.com/giantswarm/backoff"
 	"github.com/giantswarm/microerror"
 	"github.com/giantswarm/micrologger"
 	corev1 "k8s.io/api/core/v1"
+	capiv1beta1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
+	"github.com/giantswarm/sonobuoy-plugin/v5/pkg/capiutil"
 	"github.com/giantswarm/sonobuoy-plugin/v5/pkg/ctrlclient"
 	"github.com/giantswarm/sonobuoy-plugin/v5/pkg/podrunner"
 )
@@ -40,6 +44,33 @@ func Test_Prometheus(t *testing.T) {
 	clusterID, exists := os.LookupEnv("CLUSTER_ID")
 	if !exists {
 		t.Fatal("missing CLUSTER_ID environment variable")
+	}
+
+	// Get Cluster.
+	var cluster *capiv1beta1.Cluster
+	{
+		cluster, err = capiutil.FindCluster(ctx, cpCtrlClient, clusterID)
+		if err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	// Ensure v19+ release.
+	{
+		releaseName := cluster.GetLabels()[label.ReleaseVersion]
+		if releaseName == "" {
+			t.Fatalf("Can't get value for label %s from Cluster CR %s", label.ReleaseVersion, cluster.Name)
+		}
+
+		rel, err := semver.ParseTolerant(releaseName)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		if rel.Major < 19 {
+			logger.Debugf(ctx, "Release %s does not support prometheus test.", releaseName)
+			return
+		}
 	}
 
 	namespace := fmt.Sprintf("%s-prometheus", clusterID)
