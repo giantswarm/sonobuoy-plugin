@@ -83,6 +83,10 @@ func Test_Apps(t *testing.T) {
 		existingApps := map[string]appv1alpha1.App{}
 		for _, app := range appList.Items {
 			existingApps[app.Name] = app
+
+			// 'observability-bundle' app CR gets a weird name (with the cluster ID prefix)
+			// in order for the test to pass, we add the same app to the existingApps map twice, one with the app CR name and one with the app's name in the spec.
+			existingApps[app.Spec.Name] = app
 		}
 
 		for _, app := range release.Spec.Apps {
