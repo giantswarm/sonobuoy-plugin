@@ -98,35 +98,6 @@ func Test_Prometheus(t *testing.T) {
 		}
 	}
 
-	logger.Debugf(ctx, "Waiting for prometheus pod %q to be running", podName)
-
-	// Wait for prometheus to be running.
-	{
-		o := func() error {
-			pod := &corev1.Pod{}
-
-			err = cpCtrlClient.Get(ctx, client.ObjectKey{Name: podName, Namespace: namespace}, pod)
-			if err != nil {
-				return microerror.Mask(err)
-			}
-
-			for _, cs := range pod.Status.ContainerStatuses {
-				if !cs.Ready {
-					return microerror.Maskf(podNotReadyError, "Container %s in pod %s is not ready", cs.Name, podName)
-				}
-			}
-
-			return nil
-		}
-
-		b := backoff.NewConstant(backoff.LongMaxWait, 1*time.Minute)
-		n := backoff.NewNotifier(logger, ctx)
-		err = backoff.RetryNotify(o, b, n)
-		if err != nil {
-			t.Fatalf("Error waiting for prometheus pod to be running.")
-		}
-	}
-
 	logger.Debugf(ctx, "Waiting for prometheus targets to be up")
 
 	// Wait for all targets to be "Up".
@@ -139,12 +110,12 @@ func Test_Prometheus(t *testing.T) {
 
 			stdout, _, err := podrunner.ExecInPod(ctx, logger, podName, namespace, "prometheus", []string{"wget", "-q", "-O-", fmt.Sprintf("prometheus-operated.%s-prometheus:9090/%s/api/v1/targets", clusterID, clusterID)}, kc)
 			if err != nil {
-				t.Fatalf("Can't exec command in pod %s: %s.", podName, err)
+				return microerror.Maskf(podExecError, "Can't exec command in pod %s: %s.", podName, err)
 			}
 
 			type target struct {
-				Health           string
-				DiscoveredLabels map[string]string
+				Health string
+				Labels map[string]string
 			}
 
 			response := struct {
@@ -155,13 +126,18 @@ func Test_Prometheus(t *testing.T) {
 
 			err = json.Unmarshal([]byte(stdout), &response)
 			if err != nil {
-				t.Fatalf("Can't parse prometheus targets output: %s", err)
+				return microerror.Maskf(unexpectedAnswerError, "Can't parse prometheus targets output: %s", err)
 			}
 
+			down := make([]string, 0)
 			for _, target := range response.Data.ActiveTargets {
 				if target.Health != "up" {
-					return microerror.Maskf(targetDownError, "Target %s is not Up (Health = %q)", target.DiscoveredLabels["job"], target.Health)
+					down = append(down, fmt.Sprintf("%s (Health = %q)", target.Labels["job"], target.Health))
 				}
+			}
+
+			if len(down) > 0 {
+				return microerror.Maskf(targetDownError, "%d target down: %v", len(down), down)
 			}
 
 			return nil

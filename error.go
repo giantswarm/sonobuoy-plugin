@@ -28,8 +28,16 @@ var pvcUnboundError = &microerror.Error{
 	Kind: "pvcUnboundError",
 }
 
+var podExecError = &microerror.Error{
+	Kind: "podExecError",
+}
+
 var targetDownError = &microerror.Error{
 	Kind: "targetDownError",
+}
+
+var unexpectedAnswerError = &microerror.Error{
+	Kind: "unexpectedAnswerError",
 }
 
 // IsNotFound asserts notFoundError.
