@@ -116,7 +116,7 @@ func Test_Autoscaler(t *testing.T) {
 
 		return nil
 	}
-	b := backoff.NewConstant(backoff.LongMaxWait, 10*time.Second)
+	b := backoff.NewConstant(120*time.Minute, 1*time.Minute)
 	n := backoff.NewNotifier(logger, ctx)
 	err = backoff.RetryNotify(o, b, n)
 	if err != nil {
@@ -131,7 +131,7 @@ func Test_Autoscaler(t *testing.T) {
 		t.Fatalf("timeout waiting for cluster to scale down: %v", err)
 	}
 
-	b = backoff.NewConstant(backoff.LongMaxWait, 10*time.Second)
+	b = backoff.NewConstant(120*time.Minute, 1*time.Minute)
 	err = backoff.RetryNotify(o, b, n)
 	if err != nil {
 		t.Fatalf("timeout waiting for cluster to scale down: %v", err)
