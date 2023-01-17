@@ -158,7 +158,7 @@ func createPodsAndNPs(ctx context.Context, ctrlClient client.Client) ([]*network
 				networkingv1.PolicyTypeEgress,
 			},
 			Egress: []networkingv1.NetworkPolicyEgressRule{
-				// To make DNS to work.
+				// Plain coredns
 				{
 					To: []networkingv1.NetworkPolicyPeer{
 						{
@@ -179,6 +179,22 @@ func createPodsAndNPs(ctx context.Context, ctrlClient client.Client) ([]*network
 							Protocol: &udp,
 							Port:     getPortPtr(1053),
 						}, {
+							Protocol: &udp,
+							Port:     getPortPtr(53),
+						},
+					},
+				},
+				// node-local DNS cache.
+				{
+					To: []networkingv1.NetworkPolicyPeer{
+						{
+							IPBlock: &networkingv1.IPBlock{
+								CIDR: "0.0.0.0/0",
+							},
+						},
+					},
+					Ports: []networkingv1.NetworkPolicyPort{
+						{
 							Protocol: &udp,
 							Port:     getPortPtr(53),
 						},
