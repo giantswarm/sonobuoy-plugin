@@ -93,8 +93,8 @@ func Test_Autoscaler(t *testing.T) {
 
 	logger.Debugf(ctx, "Found %d worker nodes", workersCount)
 
-	// Scale helloworld deployment to len(workers) + 1 replicas to trigger a scale up.
-	expectedWorkersCount := int32(workersCount + 1)
+	// Scale helloworld deployment to len(workers) + 2 replicas to trigger a scale up.
+	expectedWorkersCount := int32(workersCount + 2)
 	logger.Debugf(ctx, "Scaling deployment %s/%s to %d replicas", helloWorldNamespace, helloWorldDeploymentName, expectedWorkersCount)
 	err = scaleDeployment(ctx, tcCtrlClient, expectedWorkersCount)
 	if err != nil {
