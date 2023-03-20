@@ -65,7 +65,7 @@ func Test_CPTCConnectivity(t *testing.T) {
 		},
 		Spec: corev1.PodSpec{
 			RestartPolicy: corev1.RestartPolicyNever,
-			Containers:    []corev1.Container{{Name: "test", Image: "busybox", Command: []string{"nc"}, Args: []string{"-z", k8sAPIEndpointHost, k8sAPIEndpointPort}}},
+			Containers:    []corev1.Container{{Name: "test", Image: "quay.io/giantswarm/busybox:1.34.1", Command: []string{"nc"}, Args: []string{"-z", k8sAPIEndpointHost, k8sAPIEndpointPort}}},
 		},
 	}
 	err = cpCtrlClient.Create(ctx, pod)
