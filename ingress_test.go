@@ -205,7 +205,7 @@ done
 			Containers: []corev1.Container{
 				{
 					Name:    "test",
-					Image:   "busybox",
+					Image:   "quay.io/giantswarm/busybox:1.34.1",
 					Command: []string{"/bin/sh"},
 					Args:    []string{"/script.sh"},
 					VolumeMounts: []corev1.VolumeMount{
