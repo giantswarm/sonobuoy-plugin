@@ -158,22 +158,8 @@ func createPodsAndNPs(ctx context.Context, ctrlClient client.Client) ([]*network
 				networkingv1.PolicyTypeEgress,
 			},
 			Egress: []networkingv1.NetworkPolicyEgressRule{
-				// Plain coredns
+				// Plain coredns and node-local dns cache
 				{
-					To: []networkingv1.NetworkPolicyPeer{
-						{
-							PodSelector: &metav1.LabelSelector{
-								MatchLabels: map[string]string{
-									"k8s-app": "coredns",
-								},
-							},
-							NamespaceSelector: &metav1.LabelSelector{
-								MatchLabels: map[string]string{
-									"name": "kube-system",
-								},
-							},
-						},
-					},
 					Ports: []networkingv1.NetworkPolicyPort{
 						{
 							Protocol: &udp,
@@ -182,20 +168,11 @@ func createPodsAndNPs(ctx context.Context, ctrlClient client.Client) ([]*network
 							Protocol: &udp,
 							Port:     getPortPtr(53),
 						},
-					},
-				},
-				// node-local DNS cache.
-				{
-					To: []networkingv1.NetworkPolicyPeer{
 						{
-							IPBlock: &networkingv1.IPBlock{
-								CIDR: "0.0.0.0/0",
-							},
-						},
-					},
-					Ports: []networkingv1.NetworkPolicyPort{
-						{
-							Protocol: &udp,
+							Protocol: &tcp,
+							Port:     getPortPtr(1053),
+						}, {
+							Protocol: &tcp,
 							Port:     getPortPtr(53),
 						},
 					},
