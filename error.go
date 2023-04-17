@@ -32,6 +32,10 @@ var podExecError = &microerror.Error{
 	Kind: "podExecError",
 }
 
+var prometheusQueryError = &microerror.Error{
+	Kind: "prometheusQueryError",
+}
+
 var targetDownError = &microerror.Error{
 	Kind: "targetDownError",
 }
