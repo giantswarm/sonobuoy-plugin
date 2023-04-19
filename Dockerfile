@@ -1,4 +1,4 @@
-FROM quay.io/giantswarm/golang:1.17.6 AS builder
+FROM quay.io/giantswarm/golang:1.20.2 AS builder
 
 WORKDIR /app
 
