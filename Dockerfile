@@ -5,7 +5,7 @@ WORKDIR /app
 COPY go.mod .
 COPY go.sum .
 
-RUN go get -u github.com/jstemmer/go-junit-report \
+RUN go install github.com/jstemmer/go-junit-report/v2@latest \
   && apt-get update && apt-get install -y nodejs npm \
   && npm install -g junit-report-merger \
   && go mod download
