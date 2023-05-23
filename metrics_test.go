@@ -107,7 +107,7 @@ func Test_Metrics(t *testing.T) {
 		"apiserver_flowcontrol_dispatched_requests_total",
 		"apiserver_flowcontrol_request_concurrency_limit",
 		"apiserver_request_duration_seconds_bucket",
-		"apiserver_admission_webhook_rejection_count",
+		"apiserver_admission_webhook_request_total",
 		"apiserver_admission_webhook_admission_duration_seconds_sum",
 		"apiserver_admission_webhook_admission_duration_seconds_count",
 		"apiserver_request_total",
