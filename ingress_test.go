@@ -21,7 +21,7 @@ import (
 
 const (
 	helloWorldAppName  = "loadtest-app"
-	NginxIngressValues = `baseDomain: %s
+	IngressNginxValues = `baseDomain: %s
 controller:
   admissionWebhooks:
     enabled: false
@@ -40,8 +40,8 @@ ingress:
 // Test_Ingress creates a Pod in the tenant cluster namespace in the MC cluster
 // that tries to send an HTTP request to a "hello world" app
 // (https://github.com/giantswarm/loadtest-app) running in the tenant cluster.
-// The app is installed in the WC together with the nginx ingress controller
-// app (https://github.com/giantswarm/nginx-ingress-controller-app), so that it
+// The app is installed in the WC together with the Ingress NGINX Controller
+// app (https://github.com/giantswarm/ingress-nginx-app), so that it
 // can receive traffic from outside the cluster.
 func Test_Ingress(t *testing.T) {
 	t.Parallel()
@@ -106,10 +106,10 @@ func Test_Ingress(t *testing.T) {
 			AppOperatorVersion: "1.0.0",
 			CatalogName:        "giantswarm",
 			KubeConfig:         string(tcKubeConfig),
-			Name:               "nginx-ingress-controller-app",
+			Name:               "ingress-nginx",
 			Namespace:          "kube-system",
-			ValuesYAML:         fmt.Sprintf(NginxIngressValues, baseDomain),
-			Version:            "2.9.0",
+			ValuesYAML:         fmt.Sprintf(IngressNginxValues, baseDomain),
+			Version:            "3.0.0",
 			WaitForDeploy:      true,
 		},
 		{
