@@ -29,14 +29,11 @@ import (
 	"github.com/giantswarm/sonobuoy-plugin/v5/pkg/randomid"
 )
 
-const (
-	awsRegion = "eu-central-1"
-)
-
 type AWSProviderSupport struct {
 	logger micrologger.Logger
 
 	ec2Client *ec2.EC2
+	region    string
 }
 
 func NewAWSProviderSupport(ctx context.Context, logger micrologger.Logger, client ctrl.Client, cluster *capi.Cluster) (Support, error) {
@@ -56,6 +53,7 @@ func NewAWSProviderSupport(ctx context.Context, logger micrologger.Logger, clien
 	p := &AWSProviderSupport{
 		logger:    logger,
 		ec2Client: ec2Client,
+		region:    awsCluster.Spec.Provider.Region,
 	}
 
 	return p, nil
@@ -148,10 +146,19 @@ func (p *AWSProviderSupport) GetTestingMachinePoolForCluster(ctx context.Context
 }
 
 func (p *AWSProviderSupport) GetProviderAZs() []string {
+	switch p.region {
+	case "cn-north-1":
+		return []string{
+			fmt.Sprintf("%sa", p.region),
+			fmt.Sprintf("%sb", p.region),
+			fmt.Sprintf("%sd", p.region),
+		}
+	}
+
 	return []string{
-		fmt.Sprintf("%sa", awsRegion),
-		fmt.Sprintf("%sb", awsRegion),
-		fmt.Sprintf("%sc", awsRegion),
+		fmt.Sprintf("%sa", p.region),
+		fmt.Sprintf("%sb", p.region),
+		fmt.Sprintf("%sc", p.region),
 	}
 }
 
@@ -327,7 +334,7 @@ func getEc2Client(ctx context.Context, client ctrl.Client, awsCluster v1alpha3.A
 	if err != nil {
 		return nil, microerror.Mask(err)
 	}
-	region := awsRegion
+	region := awsCluster.Spec.Provider.Region
 	sessionToken := ""
 
 	var s *session.Session
