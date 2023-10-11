@@ -18,7 +18,18 @@ mkdir "${results_dir}" || true
 # Run all tests.
 go test -run "$E2E_FOCUS" -v -timeout 6h 2>&1 | tee -a "go_test_output" && go-junit-report <"go_test_output" >"${results_dir}/report.xml"
 
+success=$?
+
 # Run the deletion test (tear down the cluster).
 go test -run "$E2E_FOCUS" -v -timeout 2h ./deletiontests/... 2>&1 | go-junit-report >"${results_dir}/deletiontests.xml"
 
+deletionsuccess=$?
+
 jrm "${junit_report_file}" "${results_dir}/report.xml" "${results_dir}/deletiontests.xml"
+
+if [ $success -ne 0 ] || [ $deletionsuccess ne 0 ]
+then
+  exit 1
+fi
+
+exit 0
