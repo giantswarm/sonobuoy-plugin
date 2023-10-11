@@ -27,7 +27,7 @@ deletionsuccess=$?
 
 jrm "${junit_report_file}" "${results_dir}/report.xml" "${results_dir}/deletiontests.xml"
 
-if [ $success -ne 0 ] || [ $deletionsuccess ne 0 ]
+if [ $success -ne 0 ] || [ $deletionsuccess -ne 0 ]
 then
   exit 1
 fi
