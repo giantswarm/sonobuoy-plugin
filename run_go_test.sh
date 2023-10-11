@@ -29,6 +29,7 @@ jrm "${junit_report_file}" "${results_dir}/report.xml" "${results_dir}/deletiont
 
 if [ $success -ne 0 ] || [ $deletionsuccess -ne 0 ]
 then
+  echo "Tests failed"
   exit 1
 fi
 
