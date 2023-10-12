@@ -214,7 +214,7 @@ func createPodsAndNPs(ctx context.Context, ctrlClient client.Client) ([]*network
 						// Succeedes because it uses http (port 80 allowed)
 						Command: []string{
 							"curl",
-							"http://www.google.com",
+							"http://www.amazonaws.cn",
 							"-I",
 							"-m",
 							"10",
@@ -243,7 +243,7 @@ func createPodsAndNPs(ctx context.Context, ctrlClient client.Client) ([]*network
 						// Fails because it uses https (port 443 not allowed)
 						Command: []string{
 							"curl",
-							"https://www.google.com",
+							"https://www.amazonaws.cn",
 							"-I",
 							"-m",
 							"10",
