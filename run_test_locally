@@ -1,0 +1,54 @@
+#!/bin/bash
+
+set -e
+
+cp=$1
+cluster=$2
+provider=$3
+
+if [ "$cp" == "" ]
+then
+  echo "Usage: $0 <installation name> <tenant cluster id> <provider>"
+  exit 1
+fi
+
+if [ "$cluster" == "" ]
+then
+  echo "Usage: $0 <installation name> <tenant cluster id> <provider>"
+  exit 1
+fi
+
+if [ "$provider" == "" ]
+then
+  echo "Usage: $0 <installation name> <tenant cluster id> <provider>"
+  exit 1
+fi
+
+
+CLUSTER_ID_PATH=$(mktemp)
+CP_KUBECONFIG_PATH=$(mktemp)
+TC_KUBECONFIG_PATH=$(mktemp)
+
+CP_KUBECONFIG_PATH=/tmp/cp
+TC_KUBECONFIG_PATH=/tmp/tc
+
+rm -f $CP_KUBECONFIG_PATH
+rm -f $TC_KUBECONFIG_PATH
+opsctl login $cp --method clientcert --self-contained $CP_KUBECONFIG_PATH
+
+# workload cluster
+opsctl login $cp $cluster --self-contained $TC_KUBECONFIG_PATH
+
+echo -n "$cluster">$CLUSTER_ID_PATH
+
+export CP_KUBECONFIG="$(cat $CP_KUBECONFIG_PATH)"
+export TC_KUBECONFIG="$(cat $TC_KUBECONFIG_PATH)"
+export CLUSTER_ID="$(cat $CLUSTER_ID_PATH)"
+export PROVIDER=$provider
+
+echo "CP_KUBECONFIG_PATH=$CP_KUBECONFIG_PATH"
+echo "TC_KUBECONFIG_PATH=$TC_KUBECONFIG_PATH"
+echo "CLUSTER_ID_PATH=$CLUSTER_ID_PATH"
+
+sh run_go_test.sh
+

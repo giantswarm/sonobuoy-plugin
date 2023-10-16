@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
 
+set -o pipefail
+
 results_dir="${RESULTS_DIR:-/tmp/results}"
 junit_report_file="${results_dir}/combined-report.xml"
 
