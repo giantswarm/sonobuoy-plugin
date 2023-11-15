@@ -9,6 +9,9 @@ import (
 	"github.com/giantswarm/backoff"
 	"github.com/giantswarm/microerror"
 	"github.com/giantswarm/micrologger"
+	kyvernov1 "github.com/kyverno/kyverno/api/kyverno/v1"
+	"github.com/kyverno/kyverno/api/kyverno/v2alpha1"
+	"github.com/kyverno/kyverno/api/kyverno/v2beta1"
 	corev1 "k8s.io/api/core/v1"
 	v1 "k8s.io/api/storage/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
@@ -53,6 +56,11 @@ func Test_PVC(t *testing.T) {
 			t.Fatal(err)
 		}
 
+		polex, err := createPolex(ctx, tcCtrlClient, pvc)
+		if err != nil {
+			t.Fatal(err)
+		}
+
 		pod, err := createPod(ctx, tcCtrlClient, pvc)
 		if err != nil {
 			t.Fatal(err)
@@ -60,6 +68,7 @@ func Test_PVC(t *testing.T) {
 
 		cleanup := func() {
 			_ = tcCtrlClient.Delete(ctx, pvc)
+			_ = tcCtrlClient.Delete(ctx, polex)
 			_ = tcCtrlClient.Delete(ctx, pod)
 		}
 
@@ -142,6 +151,53 @@ func createPVC(ctx context.Context, ctrlClient client.Client, storageClass strin
 	}
 
 	return pvc, nil
+}
+
+func createPolex(ctx context.Context, ctrlClient client.Client, pvc *corev1.PersistentVolumeClaim) (*v2alpha1.PolicyException, error) {
+	polex := &v2alpha1.PolicyException{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      fmt.Sprintf("pvc-test-%s", pvc.Name),
+			Namespace: "giantswarm",
+		},
+		Spec: v2alpha1.PolicyExceptionSpec{
+			Match: v2beta1.MatchResources{
+				Any: kyvernov1.ResourceFilters{
+					{
+						ResourceDescription: kyvernov1.ResourceDescription{
+							Kinds:      []string{"Pod"},
+							Names:      []string{pvc.Name},
+							Namespaces: []string{pvcNamespace},
+						},
+					},
+				},
+			},
+			Exceptions: []v2alpha1.Exception{
+				{
+					PolicyName: "disallow-capabilities-strict",
+					RuleNames:  []string{"require-drop-all"},
+				},
+				{
+					PolicyName: "disallow-privilege-escalation",
+					RuleNames:  []string{"privilege-escalation"},
+				},
+				{
+					PolicyName: "require-run-as-nonroot",
+					RuleNames:  []string{"run-as-non-root"},
+				},
+				{
+					PolicyName: "restrict-seccomp-strict",
+					RuleNames:  []string{"check-seccomp-strict"},
+				},
+			},
+		},
+	}
+
+	err := ctrlClient.Create(ctx, polex)
+	if err != nil {
+		return nil, err
+	}
+
+	return polex, nil
 }
 
 func createPod(ctx context.Context, ctrlClient client.Client, pvc *corev1.PersistentVolumeClaim) (*corev1.Pod, error) {

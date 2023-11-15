@@ -6,7 +6,7 @@ import (
 	"github.com/giantswarm/apiextensions/v3/pkg/label"
 	"github.com/giantswarm/microerror"
 	capzexp "sigs.k8s.io/cluster-api-provider-azure/exp/api/v1beta1"
-	capi "sigs.k8s.io/cluster-api/api/v1beta1"
+	capiv1alpha3 "sigs.k8s.io/cluster-api/api/v1beta1"
 	ctrl "sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -59,7 +59,7 @@ func FindNonTestingAzureMachinePoolsForCluster(ctx context.Context, client ctrl.
 // specified cluster ID.
 func FindAllAzureMachinePoolsForCluster(ctx context.Context, client ctrl.Client, clusterID string) ([]capzexp.AzureMachinePool, error) {
 	var azureMachinePoolList capzexp.AzureMachinePoolList
-	err := client.List(ctx, &azureMachinePoolList, ctrl.MatchingLabels{capi.ClusterLabelName: clusterID})
+	err := client.List(ctx, &azureMachinePoolList, ctrl.MatchingLabels{capiv1alpha3.ClusterNameLabel: clusterID})
 	if err != nil {
 		return nil, microerror.Mask(err)
 	}

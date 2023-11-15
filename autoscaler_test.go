@@ -10,6 +10,9 @@ import (
 	"github.com/giantswarm/backoff"
 	"github.com/giantswarm/microerror"
 	"github.com/giantswarm/micrologger"
+	kyvernov1 "github.com/kyverno/kyverno/api/kyverno/v1"
+	"github.com/kyverno/kyverno/api/kyverno/v2alpha1"
+	"github.com/kyverno/kyverno/api/kyverno/v2beta1"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -76,6 +79,11 @@ func Test_Autoscaler(t *testing.T) {
 
 	nodeSelectorLabel := providerSupport.GetNodeSelectorLabel()
 
+	polex, err := createAutoscalerPolex(ctx, tcCtrlClient)
+	if err != nil {
+		t.Fatal(err)
+	}
+
 	deployment, err := createDeployment(ctx, tcCtrlClient, 1, machinePoolName, nodeSelectorLabel)
 	if err != nil {
 		t.Fatal(err)
@@ -83,6 +91,7 @@ func Test_Autoscaler(t *testing.T) {
 
 	t.Cleanup(func() {
 		_ = tcCtrlClient.Delete(ctx, deployment)
+		_ = tcCtrlClient.Delete(ctx, polex)
 	})
 
 	// Get number of worker nodes.
@@ -239,4 +248,50 @@ func createDeployment(ctx context.Context, ctrlClient client.Client, replicas in
 	}
 
 	return deployment, nil
+}
+
+func createAutoscalerPolex(ctx context.Context, ctrlClient client.Client) (*v2alpha1.PolicyException, error) {
+	polex := &v2alpha1.PolicyException{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "autoscaler-test",
+			Namespace: "giantswarm",
+		},
+		Spec: v2alpha1.PolicyExceptionSpec{
+			Match: v2beta1.MatchResources{
+				Any: kyvernov1.ResourceFilters{
+					{
+						ResourceDescription: kyvernov1.ResourceDescription{
+							Kinds:      []string{"Deployment", "Pod"},
+							Names:      []string{"helloworld*"},
+							Namespaces: []string{"default"},
+						},
+					},
+				},
+			},
+			Exceptions: []v2alpha1.Exception{
+				{
+					PolicyName: "disallow-capabilities-strict",
+					RuleNames:  []string{"require-drop-all", "autogen-require-drop-all"},
+				},
+				{
+					PolicyName: "disallow-privilege-escalation",
+					RuleNames:  []string{"privilege-escalation", "autogen-privilege-escalation"},
+				},
+				{
+					PolicyName: "require-run-as-nonroot",
+					RuleNames:  []string{"run-as-non-root", "autogen-run-as-non-root"},
+				},
+				{
+					PolicyName: "restrict-seccomp-strict",
+					RuleNames:  []string{"check-seccomp-strict", "autogen-check-seccomp-strict"},
+				},
+			},
+		},
+	}
+	err := ctrlClient.Create(ctx, polex)
+	if err != nil {
+		return nil, err
+	}
+
+	return polex, nil
 }

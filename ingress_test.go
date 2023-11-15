@@ -11,6 +11,9 @@ import (
 	"github.com/giantswarm/backoff"
 	"github.com/giantswarm/microerror"
 	"github.com/giantswarm/micrologger"
+	kyvernov1 "github.com/kyverno/kyverno/api/kyverno/v1"
+	"github.com/kyverno/kyverno/api/kyverno/v2alpha1"
+	"github.com/kyverno/kyverno/api/kyverno/v2beta1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	capiv1alpha3 "sigs.k8s.io/cluster-api/api/v1beta1"
@@ -80,7 +83,7 @@ func Test_Ingress(t *testing.T) {
 	logger.Debugf(ctx, "Testing that we can send http requests to a deployed app exposed via Ingress")
 
 	clusterList := &capiv1alpha3.ClusterList{}
-	err = cpCtrlClient.List(ctx, clusterList, client.MatchingLabels{capiv1alpha3.ClusterLabelName: clusterID})
+	err = cpCtrlClient.List(ctx, clusterList, client.MatchingLabels{capiv1alpha3.ClusterNameLabel: clusterID})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -109,7 +112,7 @@ func Test_Ingress(t *testing.T) {
 			Name:               "ingress-nginx",
 			Namespace:          "kube-system",
 			ValuesYAML:         fmt.Sprintf(IngressNginxValues, baseDomain),
-			Version:            "3.0.0",
+			Version:            "3.2.1",
 			WaitForDeploy:      true,
 		},
 		{
@@ -120,7 +123,7 @@ func Test_Ingress(t *testing.T) {
 			Name:               helloWorldAppName,
 			Namespace:          "default",
 			ValuesYAML:         fmt.Sprintf(HelloWorldValues, appEndpoint),
-			Version:            "0.4.2",
+			Version:            "0.5.0",
 			WaitForDeploy:      true,
 		},
 	}
@@ -129,7 +132,7 @@ func Test_Ingress(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	pod, cm, err := createPodThatSendsHttpRequestToEndpoint(ctx, cpCtrlClient, clusterID, appEndpoint)
+	pod, cm, polex, err := createPodThatSendsHttpRequestToEndpoint(ctx, cpCtrlClient, clusterID, appEndpoint)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -137,6 +140,7 @@ func Test_Ingress(t *testing.T) {
 	t.Cleanup(func() {
 		_ = cpCtrlClient.Delete(ctx, pod)
 		_ = cpCtrlClient.Delete(ctx, cm)
+		_ = cpCtrlClient.Delete(ctx, polex)
 		_ = appTest.CleanUp(ctx, apps)
 	})
 
@@ -166,7 +170,7 @@ func Test_Ingress(t *testing.T) {
 	}
 }
 
-func createPodThatSendsHttpRequestToEndpoint(ctx context.Context, ctrlClient client.Client, namespace, httpEndpoint string) (*corev1.Pod, *corev1.ConfigMap, error) {
+func createPodThatSendsHttpRequestToEndpoint(ctx context.Context, ctrlClient client.Client, namespace, httpEndpoint string) (*corev1.Pod, *corev1.ConfigMap, *v2alpha1.PolicyException, error) {
 	script := `
 #!/bin/sh
 
@@ -192,7 +196,50 @@ done
 
 	err := ctrlClient.Create(ctx, cm)
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, nil, err
+	}
+
+	polex := &v2alpha1.PolicyException{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "ingress-test",
+			Namespace: "giantswarm",
+		},
+		Spec: v2alpha1.PolicyExceptionSpec{
+			Match: v2beta1.MatchResources{
+				Any: kyvernov1.ResourceFilters{
+					{
+						ResourceDescription: kyvernov1.ResourceDescription{
+							Kinds:      []string{"Pod"},
+							Names:      []string{"e2e-ingress"},
+							Namespaces: []string{namespace},
+						},
+					},
+				},
+			},
+			Exceptions: []v2alpha1.Exception{
+				{
+					PolicyName: "disallow-capabilities-strict",
+					RuleNames:  []string{"require-drop-all"},
+				},
+				{
+					PolicyName: "disallow-privilege-escalation",
+					RuleNames:  []string{"privilege-escalation"},
+				},
+				{
+					PolicyName: "require-run-as-nonroot",
+					RuleNames:  []string{"run-as-non-root"},
+				},
+				{
+					PolicyName: "restrict-seccomp-strict",
+					RuleNames:  []string{"check-seccomp-strict"},
+				},
+			},
+		},
+	}
+
+	err = ctrlClient.Create(ctx, polex)
+	if err != nil {
+		return nil, nil, nil, err
 	}
 
 	pod := &corev1.Pod{
@@ -233,8 +280,8 @@ done
 	}
 	err = ctrlClient.Create(ctx, pod)
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, nil, err
 	}
 
-	return pod, cm, nil
+	return pod, cm, polex, nil
 }

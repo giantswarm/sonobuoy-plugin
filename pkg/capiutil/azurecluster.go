@@ -5,7 +5,7 @@ import (
 
 	"github.com/giantswarm/microerror"
 	capz "sigs.k8s.io/cluster-api-provider-azure/api/v1beta1"
-	capi "sigs.k8s.io/cluster-api/api/v1beta1"
+	capiv1alpha3 "sigs.k8s.io/cluster-api/api/v1beta1"
 	ctrl "sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -13,7 +13,7 @@ func FindAzureCluster(ctx context.Context, client ctrl.Client, azureClusterID st
 	var azureCluster *capz.AzureCluster
 	{
 		azureClusterList := &capz.AzureClusterList{}
-		err := client.List(ctx, azureClusterList, ctrl.MatchingLabels{capi.ClusterLabelName: azureClusterID})
+		err := client.List(ctx, azureClusterList, ctrl.MatchingLabels{capiv1alpha3.ClusterNameLabel: azureClusterID})
 		if err != nil {
 			return nil, microerror.Mask(err)
 		}

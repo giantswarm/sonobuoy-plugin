@@ -209,7 +209,7 @@ func (p *AzureProviderSupport) createMachinePool(ctx context.Context, client ctr
 			Labels: map[string]string{
 				label.AzureOperatorVersion: cluster.Labels[label.AzureOperatorVersion],
 				label.Cluster:              cluster.Labels[label.Cluster],
-				capi.ClusterLabelName:      cluster.Labels[capi.ClusterLabelName],
+				capi.ClusterNameLabel:      cluster.Labels[capi.ClusterNameLabel],
 				label.MachinePool:          azureMachinePool.Labels[label.MachinePool],
 				label.Organization:         cluster.Labels[label.Organization],
 				label.ReleaseVersion:       cluster.Labels[label.ReleaseVersion],
@@ -261,7 +261,7 @@ func (p *AzureProviderSupport) createAzureMachinePool(ctx context.Context, clien
 			Labels: map[string]string{
 				label.AzureOperatorVersion: cluster.Labels[label.AzureOperatorVersion],
 				label.Cluster:              cluster.Labels[label.Cluster],
-				capi.ClusterLabelName:      cluster.Name,
+				capi.ClusterNameLabel:      cluster.Name,
 				label.MachinePool:          nodepoolName,
 				label.Organization:         cluster.Labels[label.Organization],
 				label.ReleaseVersion:       cluster.Labels[label.ReleaseVersion],
@@ -313,7 +313,7 @@ func (p *AzureProviderSupport) createSpark(ctx context.Context, client ctrl.Clie
 			Labels: map[string]string{
 				label.Cluster:         cluster.Labels[label.Cluster],
 				label.ReleaseVersion:  cluster.Labels[label.ReleaseVersion],
-				capi.ClusterLabelName: cluster.Name,
+				capi.ClusterNameLabel: cluster.Name,
 				capiutil.E2ENodepool:  "true",
 			},
 		},

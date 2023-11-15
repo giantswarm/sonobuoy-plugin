@@ -24,7 +24,7 @@ func FindCluster(ctx context.Context, client ctrl.Client, clusterID string) (*ca
 		}
 
 		var clusterList capi.ClusterList
-		err = client.List(ctx, &clusterList, ctrl.MatchingLabels{capi.ClusterLabelName: clusterID})
+		err = client.List(ctx, &clusterList, ctrl.MatchingLabels{capi.ClusterNameLabel: clusterID})
 		if err != nil {
 			return nil, microerror.Mask(err)
 		}

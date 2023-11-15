@@ -9,6 +9,9 @@ import (
 	"github.com/giantswarm/backoff"
 	"github.com/giantswarm/microerror"
 	"github.com/giantswarm/micrologger"
+	v1 "github.com/kyverno/kyverno/api/kyverno/v1"
+	"github.com/kyverno/kyverno/api/kyverno/v2alpha1"
+	"github.com/kyverno/kyverno/api/kyverno/v2beta1"
 	corev1 "k8s.io/api/core/v1"
 	networkingv1 "k8s.io/api/networking/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -46,7 +49,7 @@ func Test_NetworkPolicy(t *testing.T) {
 
 	logger.Debugf(ctx, "Testing network policies")
 
-	networkPolicies, pods, err := createPodsAndNPs(ctx, tcCtrlClient)
+	networkPolicies, polexes, pods, err := createPodsAndNPs(ctx, tcCtrlClient)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -54,6 +57,9 @@ func Test_NetworkPolicy(t *testing.T) {
 	t.Cleanup(func() {
 		for _, netpol := range networkPolicies {
 			_ = tcCtrlClient.Delete(ctx, netpol)
+		}
+		for _, polex := range polexes {
+			_ = tcCtrlClient.Delete(ctx, polex)
 		}
 		for _, pod := range pods {
 			_ = tcCtrlClient.Delete(ctx, pod)
@@ -129,9 +135,10 @@ func Test_NetworkPolicy(t *testing.T) {
 	}
 }
 
-func createPodsAndNPs(ctx context.Context, ctrlClient client.Client) ([]*networkingv1.NetworkPolicy, []*corev1.Pod, error) {
+func createPodsAndNPs(ctx context.Context, ctrlClient client.Client) ([]*networkingv1.NetworkPolicy, []*v2alpha1.PolicyException, []*corev1.Pod, error) {
 	var networkPolicies []*networkingv1.NetworkPolicy
 	var pods []*corev1.Pod
+	var polexes []*v2alpha1.PolicyException
 
 	labels := map[string]string{
 		"test": "network-policy-test",
@@ -197,6 +204,49 @@ func createPodsAndNPs(ctx context.Context, ctrlClient client.Client) ([]*network
 		},
 	})
 
+	// PSS
+	{
+		polex := v2alpha1.PolicyException{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "networkpolicy-test",
+				Namespace: "giantswarm",
+			},
+			Spec: v2alpha1.PolicyExceptionSpec{
+				Match: v2beta1.MatchResources{
+					Any: v1.ResourceFilters{
+						{
+							ResourceDescription: v1.ResourceDescription{
+								Kinds:      []string{"Pod"},
+								Names:      []string{successfulPodName, failurePodName},
+								Namespaces: []string{npTestNamespace},
+							},
+						},
+					},
+				},
+				Exceptions: []v2alpha1.Exception{
+					{
+						PolicyName: "disallow-capabilities-strict",
+						RuleNames:  []string{"require-drop-all"},
+					},
+					{
+						PolicyName: "disallow-privilege-escalation",
+						RuleNames:  []string{"privilege-escalation"},
+					},
+					{
+						PolicyName: "require-run-as-nonroot",
+						RuleNames:  []string{"run-as-non-root"},
+					},
+					{
+						PolicyName: "restrict-seccomp-strict",
+						RuleNames:  []string{"check-seccomp-strict"},
+					},
+				},
+			},
+		}
+
+		polexes = append(polexes, &polex)
+	}
+
 	// Successful pod and NetworkPolicy.
 	{
 		pods = append(pods, &corev1.Pod{
@@ -261,7 +311,17 @@ func createPodsAndNPs(ctx context.Context, ctrlClient client.Client) ([]*network
 
 		err := ctrlClient.Create(ctx, obj)
 		if err != nil {
-			return nil, nil, microerror.Mask(err)
+			return nil, nil, nil, microerror.Mask(err)
+		}
+	}
+
+	for _, obj := range polexes {
+		// Delete the object in case it's there to allow for running test more than once.
+		_ = ctrlClient.Delete(ctx, obj)
+
+		err := ctrlClient.Create(ctx, obj)
+		if err != nil {
+			return nil, nil, nil, microerror.Mask(err)
 		}
 	}
 
@@ -271,9 +331,9 @@ func createPodsAndNPs(ctx context.Context, ctrlClient client.Client) ([]*network
 
 		err := ctrlClient.Create(ctx, obj)
 		if err != nil {
-			return nil, nil, microerror.Mask(err)
+			return nil, nil, nil, microerror.Mask(err)
 		}
 	}
 
-	return networkPolicies, pods, nil
+	return networkPolicies, polexes, pods, nil
 }

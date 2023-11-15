@@ -97,7 +97,7 @@ func Test_AzureDelete(t *testing.T) {
 		logger.Debugf(ctx, "Waiting for cluster CR for cluster %s to be deleted", clusterID)
 		o := func() error {
 			clusters := &capi.ClusterList{}
-			err := cpCtrlClient.List(ctx, clusters, ctrl.MatchingLabels{capi.ClusterLabelName: clusterID})
+			err := cpCtrlClient.List(ctx, clusters, ctrl.MatchingLabels{capi.ClusterNameLabel: clusterID})
 			if err != nil {
 				return microerror.Mask(err)
 			}
@@ -144,7 +144,7 @@ func Test_AzureDelete(t *testing.T) {
 
 func deleteCluster(ctx context.Context, client ctrl.Client, logger micrologger.Logger, clusterID string) error {
 	labelSelector := ctrl.MatchingLabels{}
-	labelSelector[capi.ClusterLabelName] = clusterID
+	labelSelector[capi.ClusterNameLabel] = clusterID
 
 	crNamespace, err := getClusterNamespace(ctx, client, labelSelector)
 	if IsNotFound(err) {

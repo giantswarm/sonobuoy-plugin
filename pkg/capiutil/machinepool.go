@@ -59,7 +59,7 @@ func FindNonTestingMachinePoolsForCluster(ctx context.Context, client ctrl.Clien
 // specified cluster ID.
 func FindAllMachinePoolsForCluster(ctx context.Context, client ctrl.Client, clusterID string) ([]capiexp.MachinePool, error) {
 	var machinePoolList capiexp.MachinePoolList
-	err := client.List(ctx, &machinePoolList, ctrl.MatchingLabels{capi.ClusterLabelName: clusterID})
+	err := client.List(ctx, &machinePoolList, ctrl.MatchingLabels{capi.ClusterNameLabel: clusterID})
 	if err != nil {
 		return nil, microerror.Mask(err)
 	}

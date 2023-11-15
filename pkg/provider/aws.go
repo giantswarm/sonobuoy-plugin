@@ -120,7 +120,7 @@ func (p *AWSProviderSupport) GetTestingMachinePoolForCluster(ctx context.Context
 		var machinePools []capi.MachineDeployment
 		{
 			var machinePoolList capi.MachineDeploymentList
-			err := client.List(ctx, &machinePoolList, ctrl.MatchingLabels{capi.ClusterLabelName: clusterID})
+			err := client.List(ctx, &machinePoolList, ctrl.MatchingLabels{capi.ClusterNameLabel: clusterID})
 			if err != nil {
 				return "", microerror.Mask(err)
 			}
@@ -238,7 +238,7 @@ func (p *AWSProviderSupport) createMachineDeployment(ctx context.Context, client
 			Labels: map[string]string{
 				label.AWSOperatorVersion: awsMachineDeployment.Labels[label.AWSOperatorVersion],
 				label.Cluster:            cluster.Labels[label.Cluster],
-				capi.ClusterLabelName:    cluster.Labels[capi.ClusterLabelName],
+				capi.ClusterNameLabel:    cluster.Labels[capi.ClusterNameLabel],
 				label.MachineDeployment:  awsMachineDeployment.Labels[label.MachineDeployment],
 				label.Organization:       cluster.Labels[label.Organization],
 				label.ReleaseVersion:     cluster.Labels[label.ReleaseVersion],
@@ -282,7 +282,7 @@ func (p *AWSProviderSupport) createAwsMachineDeployment(ctx context.Context, cli
 			Labels: map[string]string{
 				label.AWSOperatorVersion: awscluster.Labels[label.AWSOperatorVersion],
 				label.Cluster:            cluster.Labels[label.Cluster],
-				capi.ClusterLabelName:    cluster.Name,
+				capi.ClusterNameLabel:    cluster.Name,
 				label.MachineDeployment:  nodepoolName,
 				label.Organization:       cluster.Labels[label.Organization],
 				label.ReleaseVersion:     cluster.Labels[label.ReleaseVersion],
