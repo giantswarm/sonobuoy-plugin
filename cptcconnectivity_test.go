@@ -49,7 +49,7 @@ func Test_CPTCConnectivity(t *testing.T) {
 	}
 
 	clusterList := &capiv1alpha3.ClusterList{}
-	err = cpCtrlClient.List(ctx, clusterList, client.MatchingLabels{capiv1alpha3.ClusterLabelName: clusterID})
+	err = cpCtrlClient.List(ctx, clusterList, client.MatchingLabels{capiv1alpha3.ClusterNameLabel: clusterID})
 	if err != nil {
 		t.Fatalf("error listing Clusters in CP k8s API: %v", err)
 	}
