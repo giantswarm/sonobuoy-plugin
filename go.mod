@@ -10,12 +10,15 @@ require (
 	github.com/aws/aws-sdk-go v1.44.180
 	github.com/blang/semver v3.5.1+incompatible
 	github.com/ghodss/yaml v1.0.1-0.20190212211648-25d852aebe32
+	github.com/giantswarm/apiextensions-application v0.6.0
 	github.com/giantswarm/apiextensions/v3 v3.39.0
 	github.com/giantswarm/apptest v0.9.0
 	github.com/giantswarm/backoff v0.2.0
 	github.com/giantswarm/microerror v0.3.0
 	github.com/giantswarm/micrologger v0.4.0
+	github.com/google/go-github/v45 v45.2.0
 	github.com/kyverno/kyverno v1.9.5
+	golang.org/x/oauth2 v0.10.0
 	k8s.io/api v0.26.2
 	k8s.io/apiextensions-apiserver v0.26.1
 	k8s.io/apimachinery v0.26.2
@@ -99,6 +102,7 @@ require (
 	github.com/evanphx/json-patch/v5 v5.6.0 // indirect
 	github.com/fsnotify/fsnotify v1.6.0 // indirect
 	github.com/giantswarm/appcatalog v0.3.2 // indirect
+	github.com/giantswarm/k8smetadata v0.6.0 // indirect
 	github.com/go-chi/chi v4.1.2+incompatible // indirect
 	github.com/go-errors/errors v1.4.2 // indirect
 	github.com/go-jose/go-jose/v3 v3.0.0 // indirect
@@ -135,7 +139,6 @@ require (
 	github.com/google/gnostic v0.6.9 // indirect
 	github.com/google/go-cmp v0.5.9 // indirect
 	github.com/google/go-containerregistry v0.12.1 // indirect
-	github.com/google/go-github/v45 v45.2.0 // indirect
 	github.com/google/go-querystring v1.1.0 // indirect
 	github.com/google/gofuzz v1.2.0 // indirect
 	github.com/google/s2a-go v0.1.4 // indirect
@@ -243,7 +246,6 @@ require (
 	golang.org/x/exp v0.0.0-20221230185412-738e83a70c30 // indirect
 	golang.org/x/mod v0.10.0 // indirect
 	golang.org/x/net v0.13.0 // indirect
-	golang.org/x/oauth2 v0.10.0 // indirect
 	golang.org/x/sync v0.3.0 // indirect
 	golang.org/x/sys v0.10.0 // indirect
 	golang.org/x/term v0.10.0 // indirect

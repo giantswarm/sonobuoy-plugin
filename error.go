@@ -2,10 +2,15 @@ package sonobuoy_plugin
 
 import (
 	"github.com/giantswarm/microerror"
+	"github.com/google/go-github/v45/github"
 )
 
 var appNotReadyError = &microerror.Error{
 	Kind: "appNotReadyError",
+}
+
+var appFailedError = &microerror.Error{
+	Kind: "appFailedError",
 }
 
 var dsNotReadyError = &microerror.Error{
@@ -56,4 +61,16 @@ var unexpectedValueError = &microerror.Error{
 // IsUnexpectedValueError asserts unexpectedValueError.
 func IsUnexpectedValueError(err error) bool {
 	return microerror.Cause(err) == unexpectedValueError
+}
+func IsGithubNotFound(err error) bool {
+	if err == nil {
+		return false
+	}
+
+	v, ok := err.(*github.ErrorResponse)
+	if !ok {
+		return false
+	}
+
+	return v.Message == "Not Found"
 }

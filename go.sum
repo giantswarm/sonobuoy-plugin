@@ -459,6 +459,8 @@ github.com/ghodss/yaml v0.0.0-20180820084758-c7ce16629ff4/go.mod h1:4dBDuWmgqj2H
 github.com/ghodss/yaml v1.0.0/go.mod h1:4dBDuWmgqj2HViK6kFavaiC9ZROes6MMH2rRYeMEF04=
 github.com/ghodss/yaml v1.0.1-0.20190212211648-25d852aebe32 h1:Mn26/9ZMNWSw9C9ERFA1PUxfmGpolnw2v0bKOREu5ew=
 github.com/ghodss/yaml v1.0.1-0.20190212211648-25d852aebe32/go.mod h1:GIjDIg/heH5DOkXY3YJ/wNhfHsQHoXGjl8G8amsYQ1I=
+github.com/giantswarm/apiextensions-application v0.6.0 h1:ZPIiq27zJ2VatrWH21/dK6jR9rJrr4VJUP/Fo0GvsPE=
+github.com/giantswarm/apiextensions-application v0.6.0/go.mod h1:O6mg+EdXC9CyTLgi0d3rf6QTXrQX/79iw4kjMJRinig=
 github.com/giantswarm/apiextensions/v3 v3.13.0/go.mod h1:f+dFUDLroK50aCGzvpqPw/jCFCCgJqdEMf/xNSJBI+A=
 github.com/giantswarm/apiextensions/v3 v3.39.0 h1:+5N0QGFfck9ZckxXC0QWziIBhhdXO2hWCDbBQOeJwSY=
 github.com/giantswarm/apiextensions/v3 v3.39.0/go.mod h1:T2OVrXtzLFmtzFHZE80kWvvqnPe+xxGIxP3YKyIbrE0=
@@ -468,6 +470,8 @@ github.com/giantswarm/apptest v0.9.0 h1:gzTGjjVBJmS35WrC7tRdS87Cz/E0EN68Y9MOr75J
 github.com/giantswarm/apptest v0.9.0/go.mod h1:tm+Nzd+3QRno04Il8+mtUUsqDPsGfDWvt76xLPjbUx0=
 github.com/giantswarm/backoff v0.2.0 h1:kdfAf83pZ/l8X0KiA2dJ2Wq19nS9hISijVn7ZRdFhfU=
 github.com/giantswarm/backoff v0.2.0/go.mod h1:Z3WRsFilSJ5H5VlFa4XhraoPr+9pmZgYasoY2OSfNOk=
+github.com/giantswarm/k8smetadata v0.6.0 h1:L3opjzcNzetPacI4zOcYxDAvp6ssM/QLfuXZTQ5Otyo=
+github.com/giantswarm/k8smetadata v0.6.0/go.mod h1:k3DYCMdspxhk7efLkQdX1b8UZ71ijOCG3ZoIU8+5xgw=
 github.com/giantswarm/microerror v0.2.0/go.mod h1:1YtJq/m7Vlq1Y6NP7B+SODOKCGlG7e5wctV2OoE9n34=
 github.com/giantswarm/microerror v0.2.1/go.mod h1:1YtJq/m7Vlq1Y6NP7B+SODOKCGlG7e5wctV2OoE9n34=
 github.com/giantswarm/microerror v0.3.0 h1:V/9cXlIEddNGaRYiA0vYJmgM2+sTQy+k8M7kVjOy4XM=
