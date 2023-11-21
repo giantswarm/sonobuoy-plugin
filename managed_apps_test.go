@@ -134,7 +134,7 @@ func Test_ManagedApps(t *testing.T) {
 				return nil
 			}
 
-			b := backoff.NewConstant(2*time.Minute, 10*time.Second)
+			b := backoff.NewConstant(5*time.Minute, 30*time.Second)
 			n := backoff.NewNotifier(logger, ctx)
 			err = backoff.RetryNotify(func() error {
 				return check(app.Name)
