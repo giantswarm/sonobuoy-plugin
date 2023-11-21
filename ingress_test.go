@@ -7,7 +7,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/giantswarm/apptest"
+	appv1alpha1 "github.com/giantswarm/apiextensions-application/api/v1alpha1"
 	"github.com/giantswarm/backoff"
 	"github.com/giantswarm/microerror"
 	"github.com/giantswarm/micrologger"
@@ -19,6 +19,7 @@ import (
 	capiv1alpha3 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
+	"github.com/giantswarm/sonobuoy-plugin/v5/pkg/apputil"
 	"github.com/giantswarm/sonobuoy-plugin/v5/pkg/ctrlclient"
 )
 
@@ -70,16 +71,6 @@ func Test_Ingress(t *testing.T) {
 		t.Fatal("missing CLUSTER_ID environment variable")
 	}
 
-	cpKubeConfig, err := ctrlclient.GetCPKubeConfig()
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	tcKubeConfig, err := ctrlclient.GetTCKubeConfig()
-	if err != nil {
-		t.Fatal(err)
-	}
-
 	logger.Debugf(ctx, "Testing that we can send http requests to a deployed app exposed via Ingress")
 
 	clusterList := &capiv1alpha3.ClusterList{}
@@ -91,45 +82,47 @@ func Test_Ingress(t *testing.T) {
 	baseDomain := strings.TrimPrefix(clusterList.Items[0].Spec.ControlPlaneEndpoint.Host, "api.")
 	appEndpoint := fmt.Sprintf("%s.%s", helloWorldAppName, baseDomain)
 
-	var appTest apptest.Interface
+	// install apps
+	var ingress *appv1alpha1.App
+	var ingressConfig *corev1.ConfigMap
 	{
-		appTest, err = apptest.New(apptest.Config{
-			KubeConfig: string(cpKubeConfig),
-			Logger:     logger,
-			Scheme:     ctrlclient.Scheme,
-		})
+		ingressAppConfig := apputil.AppConfig{Name: "ingress-nginx", Namespace: "kube-system", Catalog: "giantswarm", ValuesYAML: fmt.Sprintf(IngressNginxValues, baseDomain)}
+
+		ingress, err = apputil.GetApp(clusterID, ingressAppConfig)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		ingressConfig, err = apputil.CreateAppConfigCM(ctx, logger, cpCtrlClient, clusterID, ingressAppConfig)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		err = apputil.InstallAndWait(ctx, logger, cpCtrlClient, ingress)
 		if err != nil {
 			t.Fatal(err)
 		}
 	}
 
-	apps := []apptest.App{
-		{
-			AppCRNamespace:     clusterID,
-			AppOperatorVersion: "1.0.0",
-			CatalogName:        "giantswarm",
-			KubeConfig:         string(tcKubeConfig),
-			Name:               "ingress-nginx",
-			Namespace:          "kube-system",
-			ValuesYAML:         fmt.Sprintf(IngressNginxValues, baseDomain),
-			Version:            "3.2.1",
-			WaitForDeploy:      true,
-		},
-		{
-			AppCRNamespace:     clusterID,
-			AppOperatorVersion: "1.0.0",
-			CatalogName:        "default",
-			KubeConfig:         string(tcKubeConfig),
-			Name:               helloWorldAppName,
-			Namespace:          "default",
-			ValuesYAML:         fmt.Sprintf(HelloWorldValues, appEndpoint),
-			Version:            "0.5.0",
-			WaitForDeploy:      true,
-		},
-	}
-	err = appTest.InstallApps(ctx, apps)
-	if err != nil {
-		t.Fatal(err)
+	var helloworld *appv1alpha1.App
+	var helloworldConfig *corev1.ConfigMap
+	{
+		helloworldAppCfg := apputil.AppConfig{Name: helloWorldAppName, Namespace: "default", Catalog: "default", ValuesYAML: fmt.Sprintf(HelloWorldValues, appEndpoint)}
+
+		helloworld, err = apputil.GetApp(clusterID, helloworldAppCfg)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		helloworldConfig, err = apputil.CreateAppConfigCM(ctx, logger, cpCtrlClient, clusterID, helloworldAppCfg)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		err = apputil.InstallAndWait(ctx, logger, cpCtrlClient, helloworld)
+		if err != nil {
+			t.Fatal(err)
+		}
 	}
 
 	pod, cm, polex, err := createPodThatSendsHttpRequestToEndpoint(ctx, cpCtrlClient, clusterID, appEndpoint)
@@ -141,7 +134,10 @@ func Test_Ingress(t *testing.T) {
 		_ = cpCtrlClient.Delete(ctx, pod)
 		_ = cpCtrlClient.Delete(ctx, cm)
 		_ = cpCtrlClient.Delete(ctx, polex)
-		_ = appTest.CleanUp(ctx, apps)
+		_ = cpCtrlClient.Delete(ctx, ingress)
+		_ = cpCtrlClient.Delete(ctx, ingressConfig)
+		_ = cpCtrlClient.Delete(ctx, helloworld)
+		_ = cpCtrlClient.Delete(ctx, helloworldConfig)
 	})
 
 	o := func() error {

@@ -435,10 +435,6 @@ github.com/giantswarm/apiextensions-application v0.6.0 h1:ZPIiq27zJ2VatrWH21/dK6
 github.com/giantswarm/apiextensions-application v0.6.0/go.mod h1:O6mg+EdXC9CyTLgi0d3rf6QTXrQX/79iw4kjMJRinig=
 github.com/giantswarm/apiextensions/v3 v3.39.0 h1:+5N0QGFfck9ZckxXC0QWziIBhhdXO2hWCDbBQOeJwSY=
 github.com/giantswarm/apiextensions/v3 v3.39.0/go.mod h1:T2OVrXtzLFmtzFHZE80kWvvqnPe+xxGIxP3YKyIbrE0=
-github.com/giantswarm/appcatalog v0.10.1 h1:9wNi53D5m85S87FIIuX4849FmqtdpsHWwbeSCibSgOw=
-github.com/giantswarm/appcatalog v0.10.1/go.mod h1:/FmHAicJ82jifSwq8VDS4zsupnrHbZt0xWAkRAMuvsk=
-github.com/giantswarm/apptest v1.3.0 h1:VuVmgbGW7FwqGuHYAcv8pR50/U1dABmqRbuTbmo+zJE=
-github.com/giantswarm/apptest v1.3.0/go.mod h1:p3am8vwwWP+LuzT9jvvrbSqOkR//fW7mIWeFwbmGgtc=
 github.com/giantswarm/backoff v1.0.0 h1:1oeTvyPsm1tJrHlSmfxbIWuoCNWPOkWJCb8kfLvE2T0=
 github.com/giantswarm/backoff v1.0.0/go.mod h1:l/WqbggvG5Ndxxws0LUgVEvP5E82Qj5/PF8SMip/1QM=
 github.com/giantswarm/k8smetadata v0.23.0 h1:iGwa1Nb45Sfcd5wqJEKBvxY1u5yXFg3Sq5Fw62nyRGA=

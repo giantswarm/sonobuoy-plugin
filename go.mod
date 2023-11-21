@@ -12,7 +12,6 @@ require (
 	github.com/ghodss/yaml v1.0.1-0.20190212211648-25d852aebe32
 	github.com/giantswarm/apiextensions-application v0.6.0
 	github.com/giantswarm/apiextensions/v3 v3.39.0
-	github.com/giantswarm/apptest v1.3.0
 	github.com/giantswarm/backoff v1.0.0
 	github.com/giantswarm/microerror v0.4.1
 	github.com/giantswarm/micrologger v1.1.1
@@ -101,7 +100,6 @@ require (
 	github.com/evanphx/json-patch v5.6.0+incompatible // indirect
 	github.com/evanphx/json-patch/v5 v5.6.0 // indirect
 	github.com/fsnotify/fsnotify v1.6.0 // indirect
-	github.com/giantswarm/appcatalog v0.10.1 // indirect
 	github.com/giantswarm/k8smetadata v0.23.0 // indirect
 	github.com/go-chi/chi v4.1.2+incompatible // indirect
 	github.com/go-errors/errors v1.4.2 // indirect
