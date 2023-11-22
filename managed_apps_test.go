@@ -47,8 +47,8 @@ func Test_ManagedApps(t *testing.T) {
 		},
 		"cabbage": {
 			apputil.AppConfig{Name: "kong-app"},
-			apputil.AppConfig{Name: "ingress-nginx"},
-			//apputil.AppConfig{Name: "cloudflared"}, // failed (requires custom value)
+			// apputil.AppConfig{Name: "ingress-nginx"}, // tested as part of the "ingress" test.
+			// apputil.AppConfig{Name: "cloudflared"}, // failed (requires custom value)
 		},
 		"teddyfriends": {
 			apputil.AppConfig{Name: "k8s-initiator-app", Catalog: "giantswarm-playground"}, // PSS failing
@@ -70,8 +70,8 @@ func Test_ManagedApps(t *testing.T) {
 			apputil.AppConfig{Name: "exception-recommender"},
 		},
 		"honeybadger": {
-			//	apputil.AppConfig{Name: "flux-app" }, // failed PSS
-			apputil.AppConfig{Name: "external-secrets"}, // failed PSS
+			// apputil.AppConfig{Name: "flux-app" }, // failed PSS
+			// apputil.AppConfig{Name: "external-secrets"}, // failed PSS
 		},
 		"bigmac": {
 			apputil.AppConfig{Name: "athena"},
