@@ -58,7 +58,7 @@ func Test_ManagedApps(t *testing.T) {
 			apputil.AppConfig{Name: "keda"},
 			apputil.AppConfig{Name: "promtail"},
 			apputil.AppConfig{Name: "grafana"},
-			//apputil.AppConfig{Name: "loki"}, // failed (PSS)
+			apputil.AppConfig{Name: "loki"},
 			apputil.AppConfig{Name: "datadog"},
 		},
 		"shield": {
