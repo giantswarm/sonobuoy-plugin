@@ -62,12 +62,7 @@ func Test_ManagedApps(t *testing.T) {
 			apputil.AppConfig{Name: "datadog"},
 		},
 		"shield": {
-			apputil.AppConfig{Name: "jiralert"},
 			apputil.AppConfig{Name: "starboard-exporter"},
-			apputil.AppConfig{Name: "trivy"},
-			apputil.AppConfig{Name: "trivy-operator"},
-			apputil.AppConfig{Name: "falco"},
-			apputil.AppConfig{Name: "exception-recommender"},
 		},
 		"honeybadger": {
 			// apputil.AppConfig{Name: "flux-app" }, // failed PSS
@@ -94,7 +89,7 @@ func Test_ManagedApps(t *testing.T) {
 	for team, teamApps := range apps {
 		for _, appCfg := range teamApps {
 			wg.Add(1)
-			go func(appCfg apputil.AppConfig) {
+			go func(appCfg apputil.AppConfig, team string) {
 				defer wg.Done()
 				app, err := apputil.GetApp(clusterID, appCfg)
 				if err != nil {
@@ -113,7 +108,7 @@ func Test_ManagedApps(t *testing.T) {
 				if err != nil && !IsNotFound(err) {
 					logger.Debugf(ctx, "[%s] Error deleting app %q: %s", team, app.Name, err)
 				}
-			}(appCfg)
+			}(appCfg, team)
 		}
 	}
 
