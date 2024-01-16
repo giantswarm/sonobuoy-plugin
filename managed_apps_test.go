@@ -56,7 +56,6 @@ func Test_ManagedApps(t *testing.T) {
 		"atlas": {
 			apputil.AppConfig{Name: "fluent-logshipping-app"},
 			apputil.AppConfig{Name: "keda"},
-			apputil.AppConfig{Name: "promtail"},
 			apputil.AppConfig{Name: "grafana"},
 			apputil.AppConfig{Name: "loki"},
 			apputil.AppConfig{Name: "datadog"},
