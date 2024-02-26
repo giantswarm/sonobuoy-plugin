@@ -389,8 +389,8 @@ func getARN(ctx context.Context, client ctrl.Client, awsCluster v1alpha3.AWSClus
 func getAWSCredentialsFromAwsOperatorSecret(ctx context.Context, client ctrl.Client, awscluster v1alpha3.AWSCluster) (string, string, error) {
 	secrets := &corev1.SecretList{}
 	err := client.List(ctx, secrets, ctrl.MatchingLabels{
-		label.App:                  "aws-operator",
-		label.AppKubernetesVersion: awscluster.Labels[label.AWSOperatorVersion],
+		label.App:                   "aws-operator",
+		label.AppKubernetesInstance: fmt.Sprintf("aws-operator-%s", awscluster.Labels[label.AWSOperatorVersion]),
 	})
 	if err != nil {
 		return "", "", microerror.Mask(err)
